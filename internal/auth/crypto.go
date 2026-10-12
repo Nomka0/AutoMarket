@@ -20,3 +20,14 @@ func HashPassword(password, salt string) string {
 func CheckPassword(password, salt, hash string) bool {
 	return HashPassword(password, salt) == hash
 }
+
+func VerifyPassword(password, salt, hash string) bool {
+	return CheckPassword(password, salt, hash)
+}
+
+func GenerateToken() string {
+	b := make([]byte, 32)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
