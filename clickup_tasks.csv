@@ -1,0 +1,18 @@
+Task Name,Task Description,Assignee,Priority,Sprint,Status
+"US-01: Setup del Repositorio y Gin","Configuración inicial del repositorio en Go, estructura de carpetas (cmd/, internal/api/, internal/domain/, internal/store/) e inicialización del servidor Gin.","Juan José Bolaños Delgado",High,Sprint 1,Closed
+"US-02: Modelo y Repositorio de Usuarios","Implementación de estructura User, UserStore en memoria con sync.RWMutex y seed de usuario admin inicial.","Juan José Bolaños Delgado",High,Sprint 1,To Do
+"US-03: Módulo Criptográfico Stdlib (Hash & Salt & Token)","Funciones criptográficas usando solo crypto/sha256 y crypto/rand (hashPassword, verifyPassword, generateToken). Prohibido bcrypt o jwt.","Braulio Robledo Delgado",Urgent,Sprint 1,To Do
+"US-04: Middlewares de Autenticación y Autorización","Implementar AuthMiddleware (validar token Bearer) y RequireRole (RBAC) en Gin.","Braulio Robledo Delgado",Urgent,Sprint 1,To Do
+"US-05: Endpoints de Registro y Login","POST /api/auth/register (registro de vendedores con info de contacto) y POST /api/auth/login.","Juan José Bolaños Delgado",High,Sprint 1,To Do
+"US-06: Modelo y Repositorio de Publicaciones","Estructura VehiclePublication, estados (PENDING, APPROVED, SOLD) y almacenamiento thread-safe con sync.RWMutex.","Juan José Bolaños Delgado",High,Sprint 2,To Do
+"US-07: HU-VEN-01 - Crear Publicación de Vehículo","POST /api/seller/vehicles para vendedor autenticado. Registra vehículo en estado PENDING asociado al vendedor.","Braulio Robledo Delgado",High,Sprint 2,To Do
+"US-08: HU-ADM-01 - Moderación de Publicaciones","Endpoints de moderador: GET /api/admin/publications/pending, PATCH /api/admin/publications/:id/approve, DELETE /api/admin/publications/:id.","Braulio Robledo Delgado",High,Sprint 2,To Do
+"US-09: HU-VIS-01 - Catálogo Público de Vehículos","GET /api/catalog y GET /api/catalog/:id para visitante no autenticado. Solo muestra vehículos APPROVED con datos de contacto del vendedor.","Javier Giraldo",High,Sprint 2,To Do
+"US-10: HU-VEN-01 - Reportar Vehículo Vendido","PATCH /api/seller/vehicles/:id/sold para vendedor autenticado. Cambia estado a SOLD y retira del catálogo.","Javier Giraldo",Normal,Sprint 2,To Do
+"US-11: HU-ADM-01 - Eliminación de Usuarios","DELETE /api/admin/users/:id para Administrador autenticado. Elimina usuarios de la plataforma.","Jhon Steven Angulo Nieves",Normal,Sprint 2,To Do
+"US-12: RF-01 - Accounting (Middleware de Auditoría)","Middleware Gin que registre de forma íntegra y cronológica cada operación: timestamp, path, method, user_id, role, ip, status_code.","Jhon Steven Angulo Nieves",Urgent,Sprint 3,To Do
+"US-13: Script de Pruebas E2E (cURL/Postman)","Colección de pruebas automáticas validando casos 200 OK, 401 Unauthorized y 403 Forbidden para los 3 roles.","Javier Giraldo",High,Sprint 3,To Do
+"US-14: Elaboración de Diagramas de Arquitectura","1 Diagrama de Estructura (componentes/paquetes Go) y 1 Diagrama de Comportamiento (secuencia AAA).","Javier Giraldo",High,Sprint 3,To Do
+"US-15: Grabación y Edición del Video de Sustentación","Demostración de los flujos AAA y sustentación del Pull Request según requerimientos del docente.","Jhon Steven Angulo Nieves",High,Sprint 3,To Do
+"US-16: Consolidación del Documento PDF Final","Documento PDF: portada alfabética Apellido-Nombre, commit hash, link a video, diagramas y declaración IA.","Jhon Steven Angulo Nieves",Urgent,Sprint 3,To Do
+"US-17: Invitación de GitHub a Docente","Enviar invitación formal de colaborador a imcabezas en el repositorio de GitHub.","Javier Giraldo",Normal,Sprint 3,To Do
