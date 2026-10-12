@@ -86,3 +86,38 @@ func TestTokenStore(t *testing.T) {
 		t.Fatal("expected tokenC for user-789 to remain active")
 	}
 }
+
+func TestTokenStoreConcurrency(t *testing.T) {
+	store := NewTokenStore()
+	done := make(chan bool)
+
+	// 10 concurrent creators
+	for i := 0; i < 10; i++ {
+		go func(idx int) {
+			token := store.CreateToken("user")
+			_ = token
+			done <- true
+		}(i)
+	}
+
+	// 10 concurrent readers/getters
+	for i := 0; i < 10; i++ {
+		go func() {
+			_, _ = store.GetUserID("random-token")
+			done <- true
+		}()
+	}
+
+	// 10 concurrent deleters
+	for i := 0; i < 10; i++ {
+		go func() {
+			store.DeleteByUserID("user")
+			done <- true
+		}()
+	}
+
+	for i := 0; i < 30; i++ {
+		<-done
+	}
+}
+
