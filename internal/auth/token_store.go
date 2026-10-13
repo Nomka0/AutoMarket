@@ -1,37 +1,55 @@
 package auth
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
+
+const sessionTTL = 24 * time.Hour
+
+type Session struct {
+	UserID    string
+	Role      string
+	ExpiresAt time.Time
+}
 
 type TokenStore struct {
 	mu     sync.RWMutex
-	tokens map[string]string // token -> userID
+	tokens map[string]Session
 }
 
 func NewTokenStore() *TokenStore {
 	return &TokenStore{
-		tokens: make(map[string]string),
+		tokens: make(map[string]Session),
 	}
 }
 
-func (s *TokenStore) CreateToken(userID string) string {
+func (s *TokenStore) CreateToken(userID, role string) string {
 	token := GenerateToken()
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.tokens[token] = userID
+	s.Set(token, userID, role)
 	return token
 }
 
-func (s *TokenStore) Set(token, userID string) {
+func (s *TokenStore) Set(token, userID, role string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.tokens[token] = userID
+	s.tokens[token] = Session{UserID: userID, Role: role, ExpiresAt: time.Now().Add(sessionTTL)}
+}
+
+// honey: los tokens expirados no se purgan del mapa; añadir limpieza periódica si el proceso vive días con muchos logins.
+func (s *TokenStore) ValidateToken(token string) (Session, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	session, ok := s.tokens[token]
+	if !ok || time.Now().After(session.ExpiresAt) {
+		return Session{}, false
+	}
+	return session, true
 }
 
 func (s *TokenStore) GetUserID(token string) (string, bool) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	userID, ok := s.tokens[token]
-	return userID, ok
+	session, ok := s.ValidateToken(token)
+	return session.UserID, ok
 }
 
 func (s *TokenStore) DeleteToken(token string) {
@@ -43,8 +61,8 @@ func (s *TokenStore) DeleteToken(token string) {
 func (s *TokenStore) DeleteByUserID(userID string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for t, uid := range s.tokens {
-		if uid == userID {
+	for t, session := range s.tokens {
+		if session.UserID == userID {
 			delete(s.tokens, t)
 		}
 	}
