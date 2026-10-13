@@ -16,12 +16,12 @@ func AuthMiddleware(store *TokenStore) gin.HandlerFunc {
 		}
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 
-		userID, ok := store.GetUserID(token)
+		session, ok := store.ValidateToken(token)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token inválido"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token inválido o expirado"})
 			return
 		}
-		c.Set("userID", userID)
+		c.Set("userID", session.UserID)
 		c.Next()
 	}
 }

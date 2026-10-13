@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,6 +13,7 @@ func TestAuthMiddleware(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	store := NewTokenStore()
 	store.Set("valid", "user-1")
+	store.tokens["expired"] = Session{UserID: "user-1", ExpiresAt: time.Now().Add(-time.Minute)}
 
 	r := gin.New()
 	r.GET("/", AuthMiddleware(store), func(c *gin.Context) {
@@ -27,6 +29,7 @@ func TestAuthMiddleware(t *testing.T) {
 		{"esquema distinto", "Basic valid", http.StatusUnauthorized},
 		{"Bearer sin token", "Bearer ", http.StatusUnauthorized},
 		{"token desconocido", "Bearer nope", http.StatusUnauthorized},
+		{"token expirado", "Bearer expired", http.StatusUnauthorized},
 		{"token válido", "Bearer valid", http.StatusOK},
 	}
 	for _, tc := range cases {
