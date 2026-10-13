@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const currentUserKey = "currentUser"
+
 func AuthMiddleware(store *TokenStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -21,7 +23,16 @@ func AuthMiddleware(store *TokenStore) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token inválido o expirado"})
 			return
 		}
-		c.Set("userID", session.UserID)
+		c.Set(currentUserKey, session)
 		c.Next()
 	}
+}
+
+func GetCurrentUser(c *gin.Context) (Session, bool) {
+	val, exists := c.Get(currentUserKey)
+	if !exists {
+		return Session{}, false
+	}
+	s, ok := val.(Session)
+	return s, ok
 }

@@ -50,7 +50,7 @@ func TestTokenStore(t *testing.T) {
 	store := NewTokenStore()
 
 	userID := "user-123"
-	token := store.CreateToken(userID)
+	token := store.CreateToken(userID, "vendedor")
 
 	if len(token) != 64 {
 		t.Fatalf("expected token length 64, got %d", len(token))
@@ -70,9 +70,9 @@ func TestTokenStore(t *testing.T) {
 		t.Fatal("expected token to be deleted")
 	}
 
-	tokenA := store.CreateToken("user-456")
-	tokenB := store.CreateToken("user-456")
-	tokenC := store.CreateToken("user-789")
+	tokenA := store.CreateToken("user-456", "vendedor")
+	tokenB := store.CreateToken("user-456", "vendedor")
+	tokenC := store.CreateToken("user-789", "vendedor")
 
 	store.DeleteByUserID("user-456")
 
@@ -94,7 +94,7 @@ func TestTokenStoreConcurrency(t *testing.T) {
 	// 10 concurrent creators
 	for i := 0; i < 10; i++ {
 		go func(idx int) {
-			token := store.CreateToken("user")
+			token := store.CreateToken("user", "vendedor")
 			_ = token
 			done <- true
 		}(i)

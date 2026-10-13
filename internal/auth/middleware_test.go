@@ -12,12 +12,17 @@ import (
 func TestAuthMiddleware(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	store := NewTokenStore()
-	store.Set("valid", "user-1")
+	store.Set("valid", "user-1", "vendedor")
 	store.tokens["expired"] = Session{UserID: "user-1", ExpiresAt: time.Now().Add(-time.Minute)}
 
 	r := gin.New()
 	r.GET("/", AuthMiddleware(store), func(c *gin.Context) {
-		c.String(http.StatusOK, c.GetString("userID"))
+		session, ok := GetCurrentUser(c)
+		if !ok {
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		c.String(http.StatusOK, session.UserID+":"+session.Role)
 	})
 
 	cases := []struct {
@@ -43,8 +48,8 @@ func TestAuthMiddleware(t *testing.T) {
 			if w.Code != tc.status {
 				t.Fatalf("status = %d, se esperaba %d", w.Code, tc.status)
 			}
-			if tc.status == http.StatusOK && w.Body.String() != "user-1" {
-				t.Fatalf("userID = %q, se esperaba user-1", w.Body.String())
+			if tc.status == http.StatusOK && w.Body.String() != "user-1:vendedor" {
+				t.Fatalf("sesión = %q, se esperaba user-1:vendedor", w.Body.String())
 			}
 		})
 	}

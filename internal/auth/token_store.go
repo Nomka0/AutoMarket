@@ -9,6 +9,7 @@ const sessionTTL = 24 * time.Hour
 
 type Session struct {
 	UserID    string
+	Role      string
 	ExpiresAt time.Time
 }
 
@@ -23,16 +24,16 @@ func NewTokenStore() *TokenStore {
 	}
 }
 
-func (s *TokenStore) CreateToken(userID string) string {
+func (s *TokenStore) CreateToken(userID, role string) string {
 	token := GenerateToken()
-	s.Set(token, userID)
+	s.Set(token, userID, role)
 	return token
 }
 
-func (s *TokenStore) Set(token, userID string) {
+func (s *TokenStore) Set(token, userID, role string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.tokens[token] = Session{UserID: userID, ExpiresAt: time.Now().Add(sessionTTL)}
+	s.tokens[token] = Session{UserID: userID, Role: role, ExpiresAt: time.Now().Add(sessionTTL)}
 }
 
 // honey: los tokens expirados no se purgan del mapa; añadir limpieza periódica si el proceso vive días con muchos logins.
