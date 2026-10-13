@@ -106,6 +106,7 @@ El sistema deberá implementar el marco de seguridad AAA (_Authentication, Autho
 
 ### ALCANCE
 
+
 • La solución debe ceñirse **estrictamente** a lo pedido en las HUs y en el RF-01.  
 • Se penalizarán funcionalidades, endpoints, mecanismos o capacidades **no solicitadas** en los artefactos entregados, aunque el equipo las considere "buenas prácticas".  
 • La calidad inherente al código (tales como separación de responsabilidades, cohesión, bajo acoplamiento, manejo consistente de errores y ausencia de duplicación, entre otros), y el entendimiento del mismo, durante el video, o en sesiones de sustentación en vivo, será factor de evaluación.
