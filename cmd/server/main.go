@@ -55,8 +55,9 @@ func main() {
 	})
 
 	authHandler := handlers.NewAuthHandler(userStore, auth.NewTokenStore())
-	r.POST("/api/auth/register", authHandler.Register)
-	r.POST("/api/auth/login", authHandler.Login)
+	authGroup := r.Group("/api/auth")
+	authGroup.POST("/register", authHandler.Register)
+	authGroup.POST("/login", authHandler.Login)
 
 	if err := r.Run(":8080"); err != nil {
 		panic(err)
