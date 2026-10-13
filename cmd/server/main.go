@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"automarket/internal/handlers"
 	"automarket/internal/store"
 )
 
@@ -51,6 +52,9 @@ func main() {
 			"message": "pong",
 		})
 	})
+
+	authHandler := handlers.NewAuthHandler(userStore)
+	r.POST("/api/auth/register", authHandler.Register)
 
 	if err := r.Run(":8080"); err != nil {
 		panic(err)
