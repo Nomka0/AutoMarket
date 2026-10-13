@@ -54,3 +54,40 @@ func TestAuthMiddleware(t *testing.T) {
 		})
 	}
 }
+
+func TestRequireRole(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	store := NewTokenStore()
+	store.Set("seller", "user-1", "vendedor")
+	store.Set("admin", "user-2", "admin")
+
+	ok := func(c *gin.Context) { c.Status(http.StatusOK) }
+	r := gin.New()
+	r.GET("/admin", AuthMiddleware(store), RequireRole("admin"), ok)
+	r.GET("/both", AuthMiddleware(store), RequireRole("admin", "vendedor"), ok)
+	r.GET("/sin-auth", RequireRole("admin"), ok)
+
+	cases := []struct {
+		name, path, token string
+		status            int
+	}{
+		{"rol permitido", "/admin", "admin", http.StatusOK},
+		{"rol no permitido", "/admin", "seller", http.StatusForbidden},
+		{"varios roles permitidos", "/both", "seller", http.StatusOK},
+		{"sin token", "/admin", "", http.StatusUnauthorized},
+		{"sin AuthMiddleware previo", "/sin-auth", "admin", http.StatusUnauthorized},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+			if tc.token != "" {
+				req.Header.Set("Authorization", "Bearer "+tc.token)
+			}
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+			if w.Code != tc.status {
+				t.Fatalf("status = %d, se esperaba %d", w.Code, tc.status)
+			}
+		})
+	}
+}

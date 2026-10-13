@@ -2,6 +2,7 @@ package auth
 
 import (
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -24,6 +25,21 @@ func AuthMiddleware(store *TokenStore) gin.HandlerFunc {
 			return
 		}
 		c.Set(currentUserKey, session)
+		c.Next()
+	}
+}
+
+func RequireRole(allowedRoles ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		session, ok := GetCurrentUser(c)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "no autenticado"})
+			return
+		}
+		if !slices.Contains(allowedRoles, session.Role) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "permiso denegado para su rol"})
+			return
+		}
 		c.Next()
 	}
 }
