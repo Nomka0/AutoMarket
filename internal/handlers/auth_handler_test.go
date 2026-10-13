@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -17,15 +18,20 @@ func TestRegister(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	userStore := store.NewUserStore()
 	r := gin.New()
-	r.POST("/api/auth/register", NewAuthHandler(userStore).Register)
+	tokenStore := auth.NewTokenStore()
+	h := NewAuthHandler(userStore, tokenStore)
+	r.POST("/api/auth/register", h.Register)
+	r.POST("/api/auth/login", h.Login)
 
-	post := func(body string) *httptest.ResponseRecorder {
+	postTo := func(path, body string) *httptest.ResponseRecorder {
 		w := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodPost, "/api/auth/register", strings.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		r.ServeHTTP(w, req)
 		return w
 	}
+	post := func(body string) *httptest.ResponseRecorder { return postTo("/api/auth/register", body) }
+	login := func(body string) *httptest.ResponseRecorder { return postTo("/api/auth/login", body) }
 
 	// role enviado por el cliente debe ignorarse
 	valid := `{"username":"juan","password":"secreto","contact_info":"juan@mail.com","role":"admin"}`
@@ -53,5 +59,33 @@ func TestRegister(t *testing.T) {
 	}
 	if w := post(`not json`); w.Code != http.StatusBadRequest {
 		t.Errorf("invalid JSON: expected 400, got %d", w.Code)
+	}
+
+	// Login
+	w := login(`{"username":"juan","password":"secreto"}`)
+	if w.Code != http.StatusOK {
+		t.Fatalf("login: expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	var resp struct{ Token, Role, Username string }
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.Role != domain.RoleSeller || resp.Username != "juan" {
+		t.Errorf("unexpected login response: %+v", resp)
+	}
+	if s, ok := tokenStore.ValidateToken(resp.Token); !ok || s.UserID != u.ID || s.Role != u.Role {
+		t.Error("login token must map to a valid session for the user")
+	}
+
+	wrongPass := login(`{"username":"juan","password":"mala"}`)
+	noUser := login(`{"username":"nadie","password":"secreto"}`)
+	if wrongPass.Code != http.StatusUnauthorized || noUser.Code != http.StatusUnauthorized {
+		t.Errorf("bad credentials: expected 401, got %d and %d", wrongPass.Code, noUser.Code)
+	}
+	if wrongPass.Body.String() != noUser.Body.String() {
+		t.Error("401 responses must not reveal whether the user exists")
+	}
+	if w := login(`{"username":"juan"}`); w.Code != http.StatusBadRequest {
+		t.Errorf("missing password: expected 400, got %d", w.Code)
 	}
 }

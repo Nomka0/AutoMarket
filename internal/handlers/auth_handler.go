@@ -16,12 +16,36 @@ type RegisterRequest struct {
 	ContactInfo string `json:"contact_info" binding:"required"`
 }
 
-type AuthHandler struct {
-	userStore *store.UserStore
+type LoginRequest struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }
 
-func NewAuthHandler(userStore *store.UserStore) *AuthHandler {
-	return &AuthHandler{userStore: userStore}
+type AuthHandler struct {
+	userStore  *store.UserStore
+	tokenStore *auth.TokenStore
+}
+
+func NewAuthHandler(userStore *store.UserStore, tokenStore *auth.TokenStore) *AuthHandler {
+	return &AuthHandler{userStore: userStore, tokenStore: tokenStore}
+}
+
+func (h *AuthHandler) Login(c *gin.Context) {
+	var req LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username and password are required"})
+		return
+	}
+
+	// mismo 401 para usuario inexistente y contraseña incorrecta: no revela si el usuario existe
+	user, ok := h.userStore.FindByUsername(req.Username)
+	if !ok || !auth.CheckPassword(req.Password, user.Salt, user.PasswordHash) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+		return
+	}
+
+	token := h.tokenStore.CreateToken(user.ID, user.Role) // expira en 24h (sessionTTL)
+	c.JSON(http.StatusOK, gin.H{"token": token, "role": user.Role, "username": user.Username})
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
