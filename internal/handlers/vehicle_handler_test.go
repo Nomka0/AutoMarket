@@ -120,8 +120,8 @@ func TestMarkAsSold(t *testing.T) {
 	vehicleStore.Create(domain.VehiclePublication{ID: "a1", SellerID: "seller-1", Status: domain.StatusApproved})
 	vehicleStore.Create(domain.VehiclePublication{ID: "pending", SellerID: "seller-1", Status: domain.StatusPending})
 
-	if w := sold(other, "a1"); w.Code != http.StatusForbidden {
-		t.Errorf("other seller: expected 403, got %d", w.Code)
+	if w := sold(other, "a1"); w.Code != http.StatusForbidden || !strings.Contains(w.Body.String(), "no tienes permiso para modificar esta publicación") {
+		t.Errorf("other seller: expected 403 with message, got %d %s", w.Code, w.Body.String())
 	}
 	if p, _ := vehicleStore.FindByID("a1"); p.Status != domain.StatusApproved {
 		t.Errorf("other seller must not change the status, got %s", p.Status)

@@ -74,7 +74,7 @@ func (h *VehicleHandler) MarkAsSold(c *gin.Context) {
 		return
 	}
 	if pub.SellerID != session.UserID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "solo el vendedor propietario puede marcarla como vendida"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "no tienes permiso para modificar esta publicación"})
 		return
 	}
 	// solo APPROVED -> SOLD: una pendiente nunca estuvo en el catalogo y una vendida ya salio
