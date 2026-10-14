@@ -35,6 +35,7 @@ audit.log
 .DS_Store
 .idea/
 .vscode/
+.obsidian/
 
 # Go workspace
 go.work

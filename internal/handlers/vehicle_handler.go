@@ -48,8 +48,8 @@ func (h *VehicleHandler) CreatePublication(c *gin.Context) {
 		ID:            auth.GenerateToken(), // ID aleatorio de 32 bytes en hex
 		SellerID:      session.UserID,
 		SellerContact: user.ContactInfo,
-		Title:         req.Title,
-		Description:   req.Description,
+		Title:         strings.TrimSpace(req.Title),
+		Description:   strings.TrimSpace(req.Description),
 		Price:         req.Price,
 		Year:          req.Year,
 		Status:        domain.StatusPending, // nunca entra aprobada directamente (HU-VEN-01)
