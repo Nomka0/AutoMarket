@@ -47,7 +47,13 @@ func main() {
 		log.Fatalf("failed to seed admin: %v", err)
 	}
 
+	auditLogger, err := auth.NewFileAuditLogger("audit.log")
+	if err != nil {
+		log.Fatalf("failed to init audit logger: %v", err)
+	}
+
 	r := gin.Default()
+	r.Use(auth.AuditLogMiddleware(auditLogger))
 
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -63,26 +69,26 @@ func main() {
 	authGroup.POST("/register", authHandler.Register)
 	authGroup.POST("/login", authHandler.Login)
 
-	// un solo vehicle store: lo que publica el vendedor es lo que modera el admin
 	vehicleStore := store.NewVehicleStore()
 	vehicleHandler := handlers.NewVehicleHandler(vehicleStore, userStore)
-	adminHandler := handlers.NewAdminHandler(vehicleStore)
-	catalogHandler := handlers.NewCatalogHandler(vehicleStore)
 
 	// publico: sin middleware de autenticacion, el visitante no necesita token
+	catalogHandler := handlers.NewCatalogHandler(vehicleStore)
 	catalogGroup := r.Group("/api/catalog")
 	catalogGroup.GET("", catalogHandler.GetCatalog)
 	catalogGroup.GET("/:id", catalogHandler.GetCatalogDetail)
 
 	sellerGroup := r.Group("/api/seller")
 	sellerGroup.Use(auth.AuthMiddleware(tokenStore), auth.RequireRole(domain.RoleSeller))
-	sellerGroup.POST("/publications", vehicleHandler.CreatePublication)
+	sellerGroup.POST("/vehicles", vehicleHandler.CreatePublication)
 
+	adminHandler := handlers.NewAdminHandler(vehicleStore, userStore, tokenStore)
 	adminGroup := r.Group("/api/admin")
 	adminGroup.Use(auth.AuthMiddleware(tokenStore), auth.RequireRole(domain.RoleAdmin))
 	adminGroup.GET("/publications/pending", adminHandler.GetPendingPublications)
 	adminGroup.PATCH("/publications/:id/approve", adminHandler.ApprovePublication)
 	adminGroup.DELETE("/publications/:id", adminHandler.DeletePublication)
+	adminGroup.DELETE("/users/:id", adminHandler.DeleteUser)
 
 	if err := r.Run(":8080"); err != nil {
 		panic(err)

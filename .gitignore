@@ -6,7 +6,7 @@
 *.dylib
 bin/
 dist/
-server
+/server
 automarket
 
 # Test binary and coverage artifacts
@@ -35,6 +35,7 @@ audit.log
 .DS_Store
 .idea/
 .vscode/
+.obsidian/
 
 # Go workspace
 go.work
