@@ -100,3 +100,40 @@ func TestCatalogIncludesVehicleDataAndSellerContact(t *testing.T) {
 		}
 	}
 }
+
+func TestGetCatalogDetail(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	vehicleStore := store.NewVehicleStore()
+	r := gin.New()
+	r.GET("/api/catalog/:id", NewCatalogHandler(vehicleStore).GetCatalogDetail)
+
+	get := func(id string) *httptest.ResponseRecorder {
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/catalog/"+id, nil))
+		return w
+	}
+
+	vehicleStore.Create(domain.VehiclePublication{ID: "a1", Title: "Mazda 3", Status: domain.StatusApproved, SellerContact: "juan@mail.com"})
+	vehicleStore.Create(domain.VehiclePublication{ID: "pending", Status: domain.StatusPending})
+	vehicleStore.Create(domain.VehiclePublication{ID: "sold", Status: domain.StatusSold})
+
+	w := get("a1")
+	var pub domain.VehiclePublication
+	if err := json.Unmarshal(w.Body.Bytes(), &pub); err != nil || w.Code != http.StatusOK {
+		t.Fatalf("approved: expected 200, got %d %s", w.Code, w.Body.String())
+	}
+	if pub.ID != "a1" || pub.Title != "Mazda 3" || pub.SellerContact != "juan@mail.com" {
+		t.Errorf("unexpected detail: %+v", pub)
+	}
+
+	notFound := get("nope").Body.String()
+	for _, id := range []string{"pending", "sold", "nope"} {
+		w := get(id)
+		if w.Code != http.StatusNotFound || !strings.Contains(w.Body.String(), "vehículo no disponible en catálogo") {
+			t.Errorf("%s: expected 404, got %d %s", id, w.Code, w.Body.String())
+		}
+		if w.Body.String() != notFound {
+			t.Errorf("%s: 404 must not reveal whether the publication exists", id)
+		}
+	}
+}
