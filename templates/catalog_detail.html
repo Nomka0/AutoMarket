@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>{{.Title}} - AutoMarket</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <div class="nav-container">
+      <a href="/catalog" class="logo">Auto<span>Market</span></a>
+      <nav>
+        <a href="/catalog">Catálogo</a>
+        {{if .User.UserID}}
+          <a href="/logout">Salir</a>
+        {{else}}
+          <a href="/login">Ingresar</a>
+          <a href="/register">Registrarse</a>
+        {{end}}
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div style="max-width: 700px; margin: 2rem auto;">
+      <a href="/catalog" style="color: var(--primary); text-decoration: none; font-size: 0.9rem;">&larr; Volver al catálogo</a>
+      
+      <div class="card" style="margin-top: 1rem; padding: 2rem;">
+        <h1>{{.Vehicle.Title}}</h1>
+        <div class="price" style="font-size: 1.75rem; margin: 0.5rem 0;">${{printf "%.2f" .Vehicle.Price}}</div>
+        <div class="meta">Año {{.Vehicle.Year}} &bull; Publicado: {{.Vehicle.CreatedAt.Format "02/01/2006"}}</div>
+        
+        <p class="desc" style="font-size: 1rem; margin: 1.5rem 0; line-height: 1.6;">{{.Vehicle.Description}}</p>
+        
+        <div class="contact" style="padding: 1rem; font-size: 0.95rem;">
+          <strong style="color: #fff;">Información de Contacto del Vendedor:</strong><br>
+          <span style="color: #93c5fd;">{{.Vehicle.SellerContact}}</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    AutoMarket &bull; Sistema Seguro de Venta de Vehículos &bull; Gin Framework
+  </footer>
+</body>
+</html>

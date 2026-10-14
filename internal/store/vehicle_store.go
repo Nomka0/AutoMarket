@@ -54,6 +54,18 @@ func (s *VehicleStore) FindPending() []domain.VehiclePublication {
 	return res
 }
 
+func (s *VehicleStore) FindBySellerID(sellerID string) []domain.VehiclePublication {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	res := []domain.VehiclePublication{}
+	for _, pub := range s.pubs {
+		if pub.SellerID == sellerID {
+			res = append(res, pub)
+		}
+	}
+	return res
+}
+
 func (s *VehicleStore) UpdateStatus(id, newStatus string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>{{.Title}} - AutoMarket</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <div class="nav-container">
+      <a href="/catalog" class="logo">Auto<span>Market</span></a>
+      <nav>
+        <a href="/catalog" class="active">Catálogo</a>
+        {{if .User.UserID}}
+          {{if eq .User.Role "admin"}}
+            <a href="/admin">Panel Admin</a>
+          {{else if eq .User.Role "vendedor"}}
+            <a href="/seller">Mis Vehículos</a>
+          {{end}}
+          <span class="nav-badge">{{.User.Role}}</span>
+          <a href="/logout">Salir</a>
+        {{else}}
+          <a href="/login">Ingresar</a>
+          <a href="/register">Registrarse</a>
+          {{if not .HasAdmin}}
+            <a href="/setup-admin" style="color: var(--warning);">Setup Admin</a>
+          {{end}}
+        {{end}}
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="hero">
+      <h1>Catálogo Público de Vehículos</h1>
+      <p>Explora vehículos usados verificados y contacta directamente al vendedor sin intermediarios.</p>
+    </div>
+
+    {{if .Error}}<div class="alert alert-error">{{.Error}}</div>{{end}}
+    {{if .Msg}}<div class="alert alert-success">{{.Msg}}</div>{{end}}
+
+    {{if .Vehicles}}
+      <div class="grid">
+        {{range .Vehicles}}
+          <div class="card">
+            <div>
+              <h2>{{.Title}}</h2>
+              <div class="price">${{printf "%.2f" .Price}}</div>
+              <div class="meta">Año {{.Year}} &bull; Estado: <span class="badge badge-approved">Disponible</span></div>
+              <p class="desc">{{.Description}}</p>
+            </div>
+            <div class="contact">
+              <strong>Contacto del Vendedor:</strong><br>
+              {{.SellerContact}}
+            </div>
+          </div>
+        {{end}}
+      </div>
+    {{else}}
+      <div class="panel-section" style="text-align: center; padding: 3rem;">
+        <p style="color: var(--text-muted); font-size: 1.1rem;">No hay vehículos disponibles en el catálogo en este momento.</p>
+      </div>
+    {{end}}
+  </main>
+
+  <footer>
+    AutoMarket &bull; Sistema Seguro de Venta de Vehículos con Arquitectura AAA &bull; Gin Framework
+  </footer>
+</body>
+</html>
