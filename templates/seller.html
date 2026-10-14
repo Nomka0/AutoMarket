@@ -54,7 +54,14 @@
 
       <!-- Mis Publicaciones -->
       <div class="panel-section">
-        <h3>Mis Vehículos Registrados</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <h3>Mis Vehículos Registrados</h3>
+          <div style="display: flex; gap: 0.5rem;">
+            <span class="badge badge-approved">Publicados: {{.ApprovedCount}}</span>
+            <span class="badge badge-pending">En revisión: {{.PendingCount}}</span>
+            <span class="badge badge-sold">Vendidos: {{.SoldCount}}</span>
+          </div>
+        </div>
         {{if .Vehicles}}
           <table>
             <thead>
@@ -86,7 +93,7 @@
                   </td>
                   <td>
                     {{if eq .Status "APPROVED"}}
-                      <form action="/seller/vehicles/{{.ID}}/sold" method="POST" style="display:inline;">
+                      <form action="/seller/vehicles/{{.ID}}/sold" method="POST" style="display:inline;" onsubmit="return confirm('¿Confirmas que este vehículo fue vendido? Se retirará inmediatamente del catálogo público.');">
                         <button type="submit" class="btn btn-sm btn-primary">Marcar Vendido</button>
                       </form>
                     {{else if eq .Status "PENDING"}}

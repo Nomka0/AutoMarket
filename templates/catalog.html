@@ -14,12 +14,14 @@
         {{if .User.UserID}}
           {{if eq .User.Role "admin"}}
             <a href="/admin">Panel Admin</a>
+            <span class="nav-badge" style="background: #a855f720; color: #c084fc; border: 1px solid #a855f740;">Admin</span>
           {{else if eq .User.Role "vendedor"}}
             <a href="/seller">Mis Vehículos</a>
+            <span class="nav-badge" style="background: #3b82f620; color: #93c5fd; border: 1px solid #3b82f640;">Vendedor</span>
           {{end}}
-          <span class="nav-badge">{{.User.Role}}</span>
           <a href="/logout">Salir</a>
         {{else}}
+          <span class="nav-badge" style="background: #10b98120; color: #34d399; border: 1px solid #10b98140;">Visitante (Público)</span>
           <a href="/login">Ingresar</a>
           <a href="/register">Registrarse</a>
           {{if not .HasAdmin}}
@@ -33,7 +35,7 @@
   <main>
     <div class="hero">
       <h1>Catálogo Público de Vehículos</h1>
-      <p>Explora vehículos usados verificados y contacta directamente al vendedor sin intermediarios.</p>
+      <p>Explora vehículos usados verificados y contacta directamente al vendedor sin intermediarios (HU-VIS-01).</p>
     </div>
 
     {{if .Error}}<div class="alert alert-error">{{.Error}}</div>{{end}}
@@ -49,9 +51,12 @@
               <div class="meta">Año {{.Year}} &bull; Estado: <span class="badge badge-approved">Disponible</span></div>
               <p class="desc">{{.Description}}</p>
             </div>
-            <div class="contact">
-              <strong>Contacto del Vendedor:</strong><br>
-              {{.SellerContact}}
+            <div>
+              <div class="contact" style="margin-bottom: 0.75rem;">
+                <strong>Contacto del Vendedor:</strong><br>
+                {{.SellerContact}}
+              </div>
+              <a href="/catalog/{{.ID}}" class="btn btn-sm" style="background: var(--surface-hover); color: var(--text); width: 100%; text-decoration: none;">Ver Ficha Completa &rarr;</a>
             </div>
           </div>
         {{end}}

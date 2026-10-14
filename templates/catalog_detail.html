@@ -12,8 +12,16 @@
       <nav>
         <a href="/catalog">Catálogo</a>
         {{if .User.UserID}}
+          {{if eq .User.Role "admin"}}
+            <a href="/admin">Panel Admin</a>
+            <span class="nav-badge" style="background: #a855f720; color: #c084fc; border: 1px solid #a855f740;">Admin</span>
+          {{else if eq .User.Role "vendedor"}}
+            <a href="/seller">Mis Vehículos</a>
+            <span class="nav-badge" style="background: #3b82f620; color: #93c5fd; border: 1px solid #3b82f640;">Vendedor</span>
+          {{end}}
           <a href="/logout">Salir</a>
         {{else}}
+          <span class="nav-badge" style="background: #10b98120; color: #34d399; border: 1px solid #10b98140;">Visitante (Público)</span>
           <a href="/login">Ingresar</a>
           <a href="/register">Registrarse</a>
         {{end}}

@@ -188,12 +188,27 @@ func (h *WebHandler) SellerDashboard(c *gin.Context) {
 	session, _ := auth.GetCurrentUser(c)
 	myVehicles := h.vehicleStore.FindBySellerID(session.UserID)
 
+	var pendingCount, approvedCount, soldCount int
+	for _, v := range myVehicles {
+		switch v.Status {
+		case domain.StatusPending:
+			pendingCount++
+		case domain.StatusApproved:
+			approvedCount++
+		case domain.StatusSold:
+			soldCount++
+		}
+	}
+
 	c.HTML(http.StatusOK, "seller.html", gin.H{
-		"Title":    "Panel del Vendedor",
-		"Vehicles": myVehicles,
-		"User":     session,
-		"Error":    c.Query("error"),
-		"Msg":      c.Query("msg"),
+		"Title":         "Panel del Vendedor",
+		"Vehicles":      myVehicles,
+		"PendingCount":  pendingCount,
+		"ApprovedCount": approvedCount,
+		"SoldCount":      soldCount,
+		"User":          session,
+		"Error":         c.Query("error"),
+		"Msg":           c.Query("msg"),
 	})
 }
 
@@ -275,7 +290,9 @@ func (h *WebHandler) AdminDashboard(c *gin.Context) {
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"Title":           "Panel de Moderación",
 		"PendingVehicles": pending,
+		"PendingCount":    len(pending),
 		"Users":           allUsers,
+		"UserCount":       len(allUsers),
 		"User":            session,
 		"Error":           c.Query("error"),
 		"Msg":             c.Query("msg"),

@@ -29,7 +29,10 @@
 
     <!-- Sección 1: Publicaciones Pendientes de Aprobación -->
     <div class="panel-section">
-      <h3>Publicaciones Pendientes de Autorización</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h3>Publicaciones Pendientes de Autorización</h3>
+        <span class="badge badge-pending">Por Revisar: {{.PendingCount}}</span>
+      </div>
       {{if .PendingVehicles}}
         <table>
           <thead>
@@ -74,7 +77,10 @@
 
     <!-- Sección 2: Gestión de Usuarios -->
     <div class="panel-section">
-      <h3>Usuarios Registrados en la Plataforma</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h3>Usuarios Registrados en la Plataforma</h3>
+        <span class="badge" style="background: #3b82f620; color: #93c5fd; border: 1px solid #3b82f640;">Total Usuarios: {{.UserCount}}</span>
+      </div>
       {{if .Users}}
         <table>
           <thead>
