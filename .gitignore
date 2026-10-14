@@ -27,9 +27,8 @@ audit.log
 *.swo
 
 # Environment files
-# .env # ahora viajan encriptados
-# .env.*
-# !.env.example
+.env
+.env.*
 
 # OS and IDE files
 .DS_Store

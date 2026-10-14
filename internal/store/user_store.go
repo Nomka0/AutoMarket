@@ -65,30 +65,58 @@ func (s *UserStore) Delete(id string) bool {
 	return true
 }
 
+func (s *UserStore) HasAdmin() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, u := range s.users {
+		if u.Role == domain.RoleAdmin {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *UserStore) CreateAdmin(username, password, contactInfo string) (domain.User, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, u := range s.users {
+		if u.Role == domain.RoleAdmin {
+			return domain.User{}, errors.New("admin user already exists")
+		}
+		if u.Username == username {
+			return domain.User{}, errors.New("username already exists")
+		}
+	}
+
+	salt := auth.GenerateSalt()
+	admin := domain.User{
+		ID:           "admin-1",
+		Username:     username,
+		PasswordHash: auth.HashPassword(password, salt),
+		Salt:         salt,
+		Role:         domain.RoleAdmin,
+		ContactInfo:  contactInfo,
+	}
+
+	s.users[admin.ID] = admin
+	return admin, nil
+}
+
 func (s *UserStore) SeedAdmin() error {
 	username := os.Getenv("ADMIN_USERNAME")
 	password := os.Getenv("ADMIN_PASSWORD")
 	if username == "" || password == "" {
-		return errors.New("missing required environment variables: ADMIN_USERNAME and ADMIN_PASSWORD must be defined")
-	}
-
-	if _, exists := s.FindByUsername(username); exists {
 		return nil
 	}
 
-	salt := auth.GenerateSalt()
-	hash := auth.HashPassword(password, salt)
-
-	admin := domain.User{
-		ID:           "admin-1",
-		Username:     username,
-		PasswordHash: hash,
-		Salt:         salt,
-		Role:         domain.RoleAdmin,
-		ContactInfo:  "admin@automarket.com",
+	if s.HasAdmin() {
+		return nil
 	}
 
-	return s.Create(admin)
+	_, err := s.CreateAdmin(username, password, "admin@automarket.com")
+	return err
 }
 
 func SeedAdmin(store *UserStore) error {
