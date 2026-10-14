@@ -6,7 +6,7 @@
 *.dylib
 bin/
 dist/
-server
+/server
 automarket
 
 # Test binary and coverage artifacts
