@@ -127,8 +127,11 @@ func TestMarkAsSold(t *testing.T) {
 		t.Errorf("other seller must not change the status, got %s", p.Status)
 	}
 
-	if w := sold(owner, "a1"); w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"status":"SOLD"`) {
-		t.Errorf("owner: expected 200 SOLD, got %d %s", w.Code, w.Body.String())
+	if w := sold(owner, "a1"); w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "vehículo reportado como vendido exitosamente") {
+		t.Errorf("owner: expected 200 with message, got %d %s", w.Code, w.Body.String())
+	}
+	if p, _ := vehicleStore.FindByID("a1"); p.Status != domain.StatusSold {
+		t.Errorf("expected status SOLD, got %s", p.Status)
 	}
 	if len(vehicleStore.FindApproved()) != 0 {
 		t.Error("sold publication must leave the catalog")

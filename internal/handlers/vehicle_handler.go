@@ -87,6 +87,5 @@ func (h *VehicleHandler) MarkAsSold(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "publicación no encontrada"})
 		return
 	}
-	pub.Status = domain.StatusSold
-	c.JSON(http.StatusOK, pub)
+	c.JSON(http.StatusOK, gin.H{"message": "vehículo reportado como vendido exitosamente"})
 }
