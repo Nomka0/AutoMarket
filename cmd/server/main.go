@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"automarket/internal/auth"
+	"automarket/internal/domain"
 	"automarket/internal/handlers"
 	"automarket/internal/store"
 )
@@ -54,10 +55,18 @@ func main() {
 		})
 	})
 
-	authHandler := handlers.NewAuthHandler(userStore, auth.NewTokenStore())
+	// un solo token store: el login emite los tokens que el middleware valida
+	tokenStore := auth.NewTokenStore()
+
+	authHandler := handlers.NewAuthHandler(userStore, tokenStore)
 	authGroup := r.Group("/api/auth")
 	authGroup.POST("/register", authHandler.Register)
 	authGroup.POST("/login", authHandler.Login)
+
+	vehicleHandler := handlers.NewVehicleHandler(store.NewVehicleStore(), userStore)
+	sellerGroup := r.Group("/api/seller")
+	sellerGroup.Use(auth.AuthMiddleware(tokenStore), auth.RequireRole(domain.RoleSeller))
+	sellerGroup.POST("/publications", vehicleHandler.CreatePublication)
 
 	if err := r.Run(":8080"); err != nil {
 		panic(err)
