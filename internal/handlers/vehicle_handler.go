@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -29,8 +30,9 @@ func NewVehicleHandler(vehicleStore *store.VehicleStore, userStore *store.UserSt
 
 func (h *VehicleHandler) CreatePublication(c *gin.Context) {
 	var req CreatePublicationRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "title, description, price (> 0) and year (> 1900) are required"})
+	// "required" acepta "   "; TrimSpace rechaza los textos solo con espacios
+	if err := c.ShouldBindJSON(&req); err != nil || strings.TrimSpace(req.Title) == "" || strings.TrimSpace(req.Description) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "datos de publicación inválidos o incompletos"})
 		return
 	}
 

@@ -84,6 +84,14 @@ func TestCreatePublication(t *testing.T) {
 	if w := post(tokenStore.CreateToken("seller-1", domain.RoleSeller), `{"title":"x"}`); w.Code != http.StatusBadRequest {
 		t.Errorf("invalid body: expected 400, got %d", w.Code)
 	}
+	for _, blank := range []string{
+		`{"title":"   ","description":"Unico dueno","price":45000000,"year":2019}`,
+		`{"title":"Mazda 3","description":" \t ","price":45000000,"year":2019}`,
+	} {
+		if w := post(tokenStore.CreateToken("seller-1", domain.RoleSeller), blank); w.Code != http.StatusBadRequest {
+			t.Errorf("blank text %s: expected 400, got %d", blank, w.Code)
+		}
+	}
 	if w := post(tokenStore.CreateToken("borrado", domain.RoleSeller), body); w.Code != http.StatusUnauthorized {
 		t.Errorf("deleted user: expected 401, got %d", w.Code)
 	}
