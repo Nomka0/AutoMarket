@@ -81,6 +81,7 @@ func main() {
 	sellerGroup := r.Group("/api/seller")
 	sellerGroup.Use(auth.AuthMiddleware(tokenStore), auth.RequireRole(domain.RoleSeller))
 	sellerGroup.POST("/vehicles", vehicleHandler.CreatePublication)
+	sellerGroup.PATCH("/vehicles/:id/sold", vehicleHandler.MarkAsSold)
 
 	adminHandler := handlers.NewAdminHandler(vehicleStore, userStore, tokenStore)
 	adminGroup := r.Group("/api/admin")
