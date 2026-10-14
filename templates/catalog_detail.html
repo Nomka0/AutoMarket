@@ -12,18 +12,21 @@
       <nav>
         <a href="/catalog">Catálogo</a>
         {{if .User.UserID}}
+          <span class="nav-divider"></span>
           {{if eq .User.Role "admin"}}
             <a href="/admin">Panel Admin</a>
-            <span class="nav-badge" style="background: #a855f720; color: #c084fc; border: 1px solid #a855f740;">Admin</span>
+            <span class="nav-badge nav-badge-admin">Admin</span>
           {{else if eq .User.Role "vendedor"}}
             <a href="/seller">Mis Vehículos</a>
-            <span class="nav-badge" style="background: #3b82f620; color: #93c5fd; border: 1px solid #3b82f640;">Vendedor</span>
+            <span class="nav-badge nav-badge-seller">Vendedor</span>
           {{end}}
           <a href="/logout">Salir</a>
         {{else}}
-          <span class="nav-badge" style="background: #10b98120; color: #34d399; border: 1px solid #10b98140;">Visitante (Público)</span>
+          <span class="nav-divider"></span>
+          <span class="nav-badge nav-badge-visitor"><span class="badge-dot"></span>Visitante (Público)</span>
+          <span class="nav-divider"></span>
           <a href="/login">Ingresar</a>
-          <a href="/register">Registrarse</a>
+          <a href="/register" class="nav-cta">Registrarse</a>
         {{end}}
       </nav>
     </div>
@@ -31,18 +34,18 @@
 
   <main>
     <div style="max-width: 700px; margin: 2rem auto;">
-      <a href="/catalog" style="color: var(--primary); text-decoration: none; font-size: 0.9rem;">&larr; Volver al catálogo</a>
+      <a href="/catalog" style="color: var(--accent-primary); text-decoration: none; font-size: 0.9rem;">&larr; Volver al catálogo</a>
       
       <div class="card" style="margin-top: 1rem; padding: 2rem;">
-        <h1>{{.Vehicle.Title}}</h1>
+        <h1 style="color: var(--text-primary);">{{.Vehicle.Title}}</h1>
         <div class="price" style="font-size: 1.75rem; margin: 0.5rem 0;">${{printf "%.2f" .Vehicle.Price}}</div>
         <div class="meta">Año {{.Vehicle.Year}} &bull; Publicado: {{.Vehicle.CreatedAt.Format "02/01/2006"}}</div>
         
         <p class="desc" style="font-size: 1rem; margin: 1.5rem 0; line-height: 1.6;">{{.Vehicle.Description}}</p>
         
         <div class="contact" style="padding: 1rem; font-size: 0.95rem;">
-          <strong style="color: #fff;">Información de Contacto del Vendedor:</strong><br>
-          <span style="color: #93c5fd;">{{.Vehicle.SellerContact}}</span>
+          <strong style="color: var(--text-primary);">Información de Contacto del Vendedor:</strong><br>
+          <span style="color: var(--accent-primary);">{{.Vehicle.SellerContact}}</span>
         </div>
       </div>
     </div>

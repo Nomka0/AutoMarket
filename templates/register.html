@@ -10,9 +10,12 @@
     <div class="nav-container">
       <a href="/catalog" class="logo">Auto<span>Market</span></a>
       <nav>
-        <span class="nav-badge" style="background: #10b98120; color: #34d399; border: 1px solid #10b98140;">Visitante (Público)</span>
         <a href="/catalog">Catálogo</a>
+        <span class="nav-divider"></span>
+        <span class="nav-badge nav-badge-visitor"><span class="badge-dot"></span>Visitante (Público)</span>
+        <span class="nav-divider"></span>
         <a href="/login">Ingresar</a>
+        <a href="/register" class="nav-cta">Registrarse</a>
       </nav>
     </div>
   </header>
@@ -20,7 +23,7 @@
   <main>
     <div class="form-card">
       <h2>Registro de Vendedor</h2>
-      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">Regístrate de forma autónoma para publicar tus vehículos y gestionar tus ventas.</p>
+      <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.25rem;">Regístrate de forma autónoma para publicar tus vehículos y gestionar tus ventas.</p>
 
       {{if .Error}}<div class="alert alert-error">{{.Error}}</div>{{end}}
 
@@ -40,8 +43,8 @@
         <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">Completar Registro</button>
       </form>
 
-      <div style="margin-top: 1.5rem; text-align: center; font-size: 0.85rem; color: var(--text-muted);">
-        ¿Ya tienes cuenta? <a href="/login" style="color: var(--primary);">Inicia Sesión</a>
+      <div style="margin-top: 1.5rem; text-align: center; font-size: 0.85rem; color: var(--text-secondary);">
+        ¿Ya tienes cuenta? <a href="/login" style="color: var(--accent-primary);">Inicia Sesión</a>
       </div>
     </div>
   </main>

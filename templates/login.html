@@ -10,11 +10,15 @@
     <div class="nav-container">
       <a href="/catalog" class="logo">Auto<span>Market</span></a>
       <nav>
-        <span class="nav-badge" style="background: #10b98120; color: #34d399; border: 1px solid #10b98140;">Visitante (Público)</span>
         <a href="/catalog">Catálogo</a>
-        <a href="/register">Registrarse</a>
+        <span class="nav-divider"></span>
+        <span class="nav-badge nav-badge-visitor"><span class="badge-dot"></span>Visitante (Público)</span>
+        <span class="nav-divider"></span>
+        <a href="/login" class="active">Ingresar</a>
+        <a href="/register" class="nav-cta">Registrarse</a>
         {{if not .HasAdmin}}
-          <a href="/setup-admin" style="color: var(--warning);">Setup Admin</a>
+          <span class="nav-divider"></span>
+          <a href="/setup-admin" class="nav-admin-btn">Setup Admin</a>
         {{end}}
       </nav>
     </div>
@@ -39,11 +43,11 @@
         <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">Ingresar a la Plataforma</button>
       </form>
 
-      <div style="margin-top: 1.5rem; text-align: center; font-size: 0.85rem; color: var(--text-muted);">
-        ¿No tienes cuenta? <a href="/register" style="color: var(--primary);">Regístrate como Vendedor</a>
+      <div style="margin-top: 1.5rem; text-align: center; font-size: 0.85rem; color: var(--text-secondary);">
+        ¿No tienes cuenta? <a href="/register" style="color: var(--accent-primary);">Regístrate como Vendedor</a>
         {{if not .HasAdmin}}
           <br><br>
-          <span style="color: var(--warning);">&bull; Sistema sin administrador:</span> <a href="/setup-admin" style="color: #fde047;">Crear Administrador Inicial</a>
+          <span style="color: var(--accent-admin);">&bull; Sistema sin administrador:</span> <a href="/setup-admin" style="color: var(--accent-admin);">Crear Administrador Inicial</a>
         {{end}}
       </div>
     </div>
