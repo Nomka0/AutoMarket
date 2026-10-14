@@ -59,3 +59,34 @@ func (h *VehicleHandler) CreatePublication(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, pub)
 }
+
+func (h *VehicleHandler) MarkAsSold(c *gin.Context) {
+	id := c.Param("id")
+	pub, exists := h.vehicleStore.FindByID(id)
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "publicación no encontrada"})
+		return
+	}
+
+	session, ok := auth.GetCurrentUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "no autenticado"})
+		return
+	}
+	if pub.SellerID != session.UserID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "solo el vendedor propietario puede marcarla como vendida"})
+		return
+	}
+	// solo APPROVED -> SOLD: una pendiente nunca estuvo en el catalogo y una vendida ya salio
+	if pub.Status != domain.StatusApproved {
+		c.JSON(http.StatusConflict, gin.H{"error": "solo se pueden marcar como vendidas publicaciones aprobadas"})
+		return
+	}
+	// puede fallar si un admin la elimina entre FindByID y UpdateStatus
+	if !h.vehicleStore.UpdateStatus(id, domain.StatusSold) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "publicación no encontrada"})
+		return
+	}
+	pub.Status = domain.StatusSold
+	c.JSON(http.StatusOK, pub)
+}

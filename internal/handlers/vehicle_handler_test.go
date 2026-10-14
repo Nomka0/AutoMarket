@@ -99,3 +99,48 @@ func TestCreatePublication(t *testing.T) {
 		t.Errorf("only the valid request must be stored, got %d", len(vehicleStore.FindPending()))
 	}
 }
+
+func TestMarkAsSold(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	vehicleStore := store.NewVehicleStore()
+	tokenStore := auth.NewTokenStore()
+	r := gin.New()
+	r.PATCH("/:id/sold", auth.AuthMiddleware(tokenStore), NewVehicleHandler(vehicleStore, store.NewUserStore()).MarkAsSold)
+
+	owner := tokenStore.CreateToken("seller-1", domain.RoleSeller)
+	other := tokenStore.CreateToken("seller-2", domain.RoleSeller)
+	sold := func(token, id string) *httptest.ResponseRecorder {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPatch, "/"+id+"/sold", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		r.ServeHTTP(w, req)
+		return w
+	}
+
+	vehicleStore.Create(domain.VehiclePublication{ID: "a1", SellerID: "seller-1", Status: domain.StatusApproved})
+	vehicleStore.Create(domain.VehiclePublication{ID: "pending", SellerID: "seller-1", Status: domain.StatusPending})
+
+	if w := sold(other, "a1"); w.Code != http.StatusForbidden {
+		t.Errorf("other seller: expected 403, got %d", w.Code)
+	}
+	if p, _ := vehicleStore.FindByID("a1"); p.Status != domain.StatusApproved {
+		t.Errorf("other seller must not change the status, got %s", p.Status)
+	}
+
+	if w := sold(owner, "a1"); w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"status":"SOLD"`) {
+		t.Errorf("owner: expected 200 SOLD, got %d %s", w.Code, w.Body.String())
+	}
+	if len(vehicleStore.FindApproved()) != 0 {
+		t.Error("sold publication must leave the catalog")
+	}
+
+	if w := sold(owner, "a1"); w.Code != http.StatusConflict {
+		t.Errorf("sold twice: expected 409, got %d", w.Code)
+	}
+	if w := sold(owner, "pending"); w.Code != http.StatusConflict {
+		t.Errorf("pending: expected 409, got %d", w.Code)
+	}
+	if w := sold(owner, "nope"); w.Code != http.StatusNotFound {
+		t.Errorf("missing: expected 404, got %d", w.Code)
+	}
+}
