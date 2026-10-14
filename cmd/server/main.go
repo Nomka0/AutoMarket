@@ -68,6 +68,12 @@ func main() {
 	sellerGroup.Use(auth.AuthMiddleware(tokenStore), auth.RequireRole(domain.RoleSeller))
 	sellerGroup.POST("/publications", vehicleHandler.CreatePublication)
 
+	adminGroup := r.Group("/api/admin")
+	adminGroup.Use(auth.AuthMiddleware(tokenStore), auth.RequireRole(domain.RoleAdmin))
+	adminGroup.GET("/publications/pending", vehicleHandler.ListPending)
+	adminGroup.PATCH("/publications/:id/approve", vehicleHandler.ApprovePublication)
+	adminGroup.DELETE("/publications/:id", vehicleHandler.DeletePublication)
+
 	if err := r.Run(":8080"); err != nil {
 		panic(err)
 	}

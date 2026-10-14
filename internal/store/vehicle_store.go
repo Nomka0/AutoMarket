@@ -33,7 +33,7 @@ func (s *VehicleStore) FindByID(id string) (domain.VehiclePublication, bool) {
 func (s *VehicleStore) FindApproved() []domain.VehiclePublication {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	var res []domain.VehiclePublication
+	res := []domain.VehiclePublication{} // lista vacia se serializa como [] y no como null
 	for _, pub := range s.pubs {
 		if pub.Status == domain.StatusApproved {
 			res = append(res, pub)
@@ -45,7 +45,7 @@ func (s *VehicleStore) FindApproved() []domain.VehiclePublication {
 func (s *VehicleStore) FindPending() []domain.VehiclePublication {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	var res []domain.VehiclePublication
+	res := []domain.VehiclePublication{} // lista vacia se serializa como [] y no como null
 	for _, pub := range s.pubs {
 		if pub.Status == domain.StatusPending {
 			res = append(res, pub)
