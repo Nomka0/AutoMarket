@@ -11,8 +11,10 @@
       <a href="/catalog" class="logo">Auto<span>Market</span></a>
       <nav>
         <a href="/catalog">Catálogo</a>
+        <span class="nav-divider"></span>
+        <span class="nav-badge nav-badge-seller">Vendedor</span>
         <a href="/seller" class="active">Panel Vendedor</a>
-        <span class="nav-badge">Vendedor</span>
+        <span class="nav-divider"></span>
         <a href="/logout">Cerrar Sesión</a>
       </nav>
     </div>
@@ -78,7 +80,7 @@
                 <tr>
                   <td>
                     <strong>{{.Title}}</strong><br>
-                    <small style="color: var(--text-muted);">{{.Description}}</small>
+                    <small style="color: var(--text-secondary);">{{.Description}}</small>
                   </td>
                   <td>{{.Year}}</td>
                   <td>${{printf "%.2f" .Price}}</td>
@@ -97,9 +99,9 @@
                         <button type="submit" class="btn btn-sm btn-primary">Marcar Vendido</button>
                       </form>
                     {{else if eq .Status "PENDING"}}
-                      <small style="color: var(--text-muted);">En revisión</small>
+                      <small style="color: var(--text-secondary);">En revisión</small>
                     {{else}}
-                      <small style="color: var(--text-muted);">&mdash;</small>
+                      <small style="color: var(--text-secondary);">&mdash;</small>
                     {{end}}
                   </td>
                 </tr>
@@ -107,7 +109,7 @@
             </tbody>
           </table>
         {{else}}
-          <p style="color: var(--text-muted); padding: 1.5rem 0;">Aún no has registrado publicaciones. Usa el formulario de la izquierda para publicar tu primer vehículo.</p>
+          <p style="color: var(--text-secondary); padding: 1.5rem 0;">Aún no has registrado publicaciones. Usa el formulario de la izquierda para publicar tu primer vehículo.</p>
         {{end}}
       </div>
     </div>

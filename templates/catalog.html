@@ -12,20 +12,24 @@
       <nav>
         <a href="/catalog" class="active">Catálogo</a>
         {{if .User.UserID}}
+          <span class="nav-divider"></span>
           {{if eq .User.Role "admin"}}
             <a href="/admin">Panel Admin</a>
-            <span class="nav-badge" style="background: #a855f720; color: #c084fc; border: 1px solid #a855f740;">Admin</span>
+            <span class="nav-badge nav-badge-admin">Admin</span>
           {{else if eq .User.Role "vendedor"}}
             <a href="/seller">Mis Vehículos</a>
-            <span class="nav-badge" style="background: #3b82f620; color: #93c5fd; border: 1px solid #3b82f640;">Vendedor</span>
+            <span class="nav-badge nav-badge-seller">Vendedor</span>
           {{end}}
           <a href="/logout">Salir</a>
         {{else}}
-          <span class="nav-badge" style="background: #10b98120; color: #34d399; border: 1px solid #10b98140;">Visitante (Público)</span>
+          <span class="nav-divider"></span>
+          <span class="nav-badge nav-badge-visitor"><span class="badge-dot"></span>Visitante (Público)</span>
+          <span class="nav-divider"></span>
           <a href="/login">Ingresar</a>
-          <a href="/register">Registrarse</a>
+          <a href="/register" class="nav-cta">Registrarse</a>
           {{if not .HasAdmin}}
-            <a href="/setup-admin" style="color: var(--warning);">Setup Admin</a>
+            <span class="nav-divider"></span>
+            <a href="/setup-admin" class="nav-admin-btn">Setup Admin</a>
           {{end}}
         {{end}}
       </nav>
@@ -56,14 +60,14 @@
                 <strong>Contacto del Vendedor:</strong><br>
                 {{.SellerContact}}
               </div>
-              <a href="/catalog/{{.ID}}" class="btn btn-sm" style="background: var(--surface-hover); color: var(--text); width: 100%; text-decoration: none;">Ver Ficha Completa &rarr;</a>
+              <a href="/catalog/{{.ID}}" class="btn btn-sm btn-secondary" style="width: 100%;">Ver Ficha Completa &rarr;</a>
             </div>
           </div>
         {{end}}
       </div>
     {{else}}
-      <div class="panel-section" style="text-align: center; padding: 3rem;">
-        <p style="color: var(--text-muted); font-size: 1.1rem;">No hay vehículos disponibles en el catálogo en este momento.</p>
+      <div class="empty-state">
+        No hay vehículos disponibles en el catálogo en este momento.
       </div>
     {{end}}
   </main>

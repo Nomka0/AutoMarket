@@ -11,19 +11,21 @@
       <a href="/catalog" class="logo">Auto<span>Market</span></a>
       <nav>
         <a href="/catalog">Catálogo</a>
+        <span class="nav-divider"></span>
         {{if .User.UserID}}
           <a href="/logout">Salir</a>
         {{else}}
           <a href="/login">Ingresar</a>
+          <a href="/register" class="nav-cta">Registrarse</a>
         {{end}}
       </nav>
     </div>
   </header>
 
   <main>
-    <div class="form-card" style="text-align: center; border-color: #ef444450; padding: 2.5rem 1.5rem;">
+    <div class="form-card" style="text-align: center; border-color: rgba(239, 68, 68, 0.35); padding: 2.5rem 1.5rem;">
       <h2 style="color: var(--danger); margin-bottom: 0.75rem;">{{.Title}}</h2>
-      <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 1.5rem;">{{.Error}}</p>
+      <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1.5rem;">{{.Error}}</p>
       <a href="/catalog" class="btn btn-primary" style="display: inline-block; width: auto; padding: 0.6rem 1.5rem;">Volver al Catálogo</a>
     </div>
   </main>
