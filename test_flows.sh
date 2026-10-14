@@ -65,8 +65,24 @@ step "1. HU-VIS-01: Visitante consulta catálogo público inicial"
 HTTP_CODE=$(curl -s -o /tmp/catalog.json -w "%{http_code}" "$BASE_URL/api/catalog")
 assert_status 200 "$HTTP_CODE" "GET /api/catalog accesible sin autenticación"
 
-# 2. Autenticación: Registro de usuarios
-step "2. RF-01 / HU-VEN-01: Registro de vendedores"
+# 2. Autenticación: Registro de usuarios y configuración de administrador
+step "2. RF-01 / HU-VEN-01: Registro de usuarios y configuración de administrador"
+# 2.0 Setup de Administrador inicial si no existe
+HAS_ADMIN=$(curl -s "$BASE_URL/api/auth/has-admin" | json_get "has_admin")
+if [ "$HAS_ADMIN" != "true" ]; then
+  RES=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/api/auth/setup-admin" \
+    -H "Content-Type: application/json" \
+    -d "{\"username\":\"${ADMIN_USER}\",\"password\":\"${ADMIN_PASS}\",\"contact_info\":\"admin@automarket.com\"}")
+  HTTP_CODE=$(echo "$RES" | tail -n1)
+  assert_status 201 "$HTTP_CODE" "POST /api/auth/setup-admin administrador inicial creado"
+fi
+
+# 2.0.1 Intento de crear segundo administrador -> 403 Forbidden
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/auth/setup-admin" \
+  -H "Content-Type: application/json" \
+  -d "{\"username\":\"admin_duplicado\",\"password\":\"pass1234\",\"contact_info\":\"otro@admin.com\"}")
+assert_status 403 "$HTTP_CODE" "POST /api/auth/setup-admin rechaza creación de segundo administrador con 403"
+
 # 2.1 Registro exitoso vendedor 1
 RES=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/api/auth/register" \
   -H "Content-Type: application/json" \

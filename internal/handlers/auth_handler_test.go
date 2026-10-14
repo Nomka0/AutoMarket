@@ -89,3 +89,47 @@ func TestRegister(t *testing.T) {
 		t.Errorf("missing password: expected 400, got %d", w.Code)
 	}
 }
+
+func TestSetupAdmin(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	userStore := store.NewUserStore()
+	r := gin.New()
+	tokenStore := auth.NewTokenStore()
+	h := NewAuthHandler(userStore, tokenStore)
+	r.POST("/api/auth/setup-admin", h.SetupAdmin)
+	r.GET("/api/auth/has-admin", h.HasAdmin)
+
+	// Inicialmente no hay admin
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/auth/has-admin", nil)
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"has_admin":false`) {
+		t.Fatalf("expected has_admin false, got: %s", w.Body.String())
+	}
+
+	// Registrar primer admin
+	w = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodPost, "/api/auth/setup-admin", strings.NewReader(`{"username":"superadmin","password":"password123","contact_info":"admin@test.com"}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// has-admin ahora debe ser true
+	w = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/api/auth/has-admin", nil)
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"has_admin":true`) {
+		t.Fatalf("expected has_admin true, got: %s", w.Body.String())
+	}
+
+	// Intentar registrar segundo admin -> 403 Forbidden
+	w = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodPost, "/api/auth/setup-admin", strings.NewReader(`{"username":"otroadmin","password":"password123","contact_info":"otro@test.com"}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d: %s", w.Code, w.Body.String())
+	}
+}

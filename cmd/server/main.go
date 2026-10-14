@@ -44,7 +44,7 @@ func main() {
 
 	userStore := store.NewUserStore()
 	if err := store.SeedAdmin(userStore); err != nil {
-		log.Fatalf("failed to seed admin: %v", err)
+		log.Printf("seed admin note: %v", err)
 	}
 
 	auditLogger, err := auth.NewFileAuditLogger("audit.log")
@@ -68,6 +68,9 @@ func main() {
 	authGroup := r.Group("/api/auth")
 	authGroup.POST("/register", authHandler.Register)
 	authGroup.POST("/login", authHandler.Login)
+	authGroup.POST("/setup-admin", authHandler.SetupAdmin)
+	authGroup.POST("/register-admin", authHandler.SetupAdmin)
+	authGroup.GET("/has-admin", authHandler.HasAdmin)
 
 	vehicleStore := store.NewVehicleStore()
 	vehicleHandler := handlers.NewVehicleHandler(vehicleStore, userStore)

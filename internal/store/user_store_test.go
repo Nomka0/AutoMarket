@@ -86,7 +86,31 @@ func TestUserStoreConcurrency(t *testing.T) {
 	}
 }
 
-func TestSeedAdminRequiresEnv(t *testing.T) {
+func TestCreateAdminAndHasAdmin(t *testing.T) {
+	s := NewUserStore()
+	if s.HasAdmin() {
+		t.Fatal("expected no admin initially")
+	}
+
+	admin, err := s.CreateAdmin("admin", "pass1234", "admin@automarket.com")
+	if err != nil {
+		t.Fatalf("unexpected error creating admin: %v", err)
+	}
+	if admin.Role != domain.RoleAdmin {
+		t.Fatalf("expected role %s, got %s", domain.RoleAdmin, admin.Role)
+	}
+	if !s.HasAdmin() {
+		t.Fatal("expected HasAdmin to return true after creation")
+	}
+
+	// Attempt to create second admin
+	_, err = s.CreateAdmin("admin2", "pass5678", "admin2@automarket.com")
+	if err == nil {
+		t.Fatal("expected error creating second admin")
+	}
+}
+
+func TestSeedAdminOptional(t *testing.T) {
 	s := NewUserStore()
 	oldUser := os.Getenv("ADMIN_USERNAME")
 	oldPass := os.Getenv("ADMIN_PASSWORD")
@@ -98,8 +122,20 @@ func TestSeedAdminRequiresEnv(t *testing.T) {
 	os.Unsetenv("ADMIN_USERNAME")
 	os.Unsetenv("ADMIN_PASSWORD")
 
-	if err := SeedAdmin(s); err == nil {
-		t.Fatal("expected error when environment variables are missing")
+	if err := SeedAdmin(s); err != nil {
+		t.Fatalf("SeedAdmin should not error when env vars are missing: %v", err)
+	}
+	if s.HasAdmin() {
+		t.Fatal("expected no admin when env vars are missing")
+	}
+
+	os.Setenv("ADMIN_USERNAME", "envadmin")
+	os.Setenv("ADMIN_PASSWORD", "envpass123#")
+	if err := SeedAdmin(s); err != nil {
+		t.Fatalf("SeedAdmin should succeed with env vars: %v", err)
+	}
+	if !s.HasAdmin() {
+		t.Fatal("expected admin to be seeded from env vars")
 	}
 }
 

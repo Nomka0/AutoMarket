@@ -72,3 +72,27 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{"id": user.ID, "username": user.Username})
 }
+
+func (h *AuthHandler) SetupAdmin(c *gin.Context) {
+	var req RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username, password and contact_info are required"})
+		return
+	}
+
+	admin, err := h.userStore.CreateAdmin(req.Username, req.Password, req.ContactInfo)
+	if err != nil {
+		if err.Error() == "admin user already exists" {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"id": admin.ID, "username": admin.Username, "role": admin.Role})
+}
+
+func (h *AuthHandler) HasAdmin(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"has_admin": h.userStore.HasAdmin()})
+}
