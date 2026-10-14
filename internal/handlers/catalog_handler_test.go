@@ -64,7 +64,7 @@ func TestCatalogIncludesVehicleDataAndSellerContact(t *testing.T) {
 
 	r := gin.New()
 	r.POST("/publications", auth.AuthMiddleware(tokenStore), NewVehicleHandler(vehicleStore, userStore).CreatePublication)
-	r.PATCH("/publications/:id/approve", NewAdminHandler(vehicleStore).ApprovePublication)
+	r.PATCH("/publications/:id/approve", NewAdminHandler(vehicleStore, nil, nil).ApprovePublication)
 	r.GET("/api/catalog", NewCatalogHandler(vehicleStore).GetCatalog)
 
 	w := httptest.NewRecorder()

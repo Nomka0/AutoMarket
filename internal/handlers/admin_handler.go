@@ -5,16 +5,23 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"automarket/internal/auth"
 	"automarket/internal/domain"
 	"automarket/internal/store"
 )
 
 type AdminHandler struct {
 	vehicleStore *store.VehicleStore
+	userStore    *store.UserStore
+	tokenStore   *auth.TokenStore
 }
 
-func NewAdminHandler(vehicleStore *store.VehicleStore) *AdminHandler {
-	return &AdminHandler{vehicleStore: vehicleStore}
+func NewAdminHandler(vehicleStore *store.VehicleStore, userStore *store.UserStore, tokenStore *auth.TokenStore) *AdminHandler {
+	return &AdminHandler{
+		vehicleStore: vehicleStore,
+		userStore:    userStore,
+		tokenStore:   tokenStore,
+	}
 }
 
 func (h *AdminHandler) GetPendingPublications(c *gin.Context) {
@@ -51,4 +58,27 @@ func (h *AdminHandler) DeletePublication(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "publicación eliminada"})
+}
+
+func (h *AdminHandler) DeleteUser(c *gin.Context) {
+	id := c.Param("id")
+
+	session, _ := auth.GetCurrentUser(c)
+	if session.UserID == id {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "un administrador no puede autoeliminarse"})
+		return
+	}
+
+	_, exists := h.userStore.FindByID(id)
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "usuario no encontrado"})
+		return
+	}
+
+	h.userStore.Delete(id)
+	if h.tokenStore != nil {
+		h.tokenStore.DeleteByUserID(id)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "usuario eliminado correctamente"})
 }
