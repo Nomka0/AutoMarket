@@ -100,14 +100,11 @@ func TestCreatePublication(t *testing.T) {
 	}
 }
 
-func TestAdminModeration(t *testing.T) {
+func TestDeletePublication(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	vehicleStore := store.NewVehicleStore()
-	h := NewVehicleHandler(vehicleStore, store.NewUserStore())
 	r := gin.New()
-	r.GET("/pending", h.ListPending)
-	r.PATCH("/:id/approve", h.ApprovePublication)
-	r.DELETE("/:id", h.DeletePublication)
+	r.DELETE("/:id", NewVehicleHandler(vehicleStore, store.NewUserStore()).DeletePublication)
 
 	do := func(method, path string) *httptest.ResponseRecorder {
 		w := httptest.NewRecorder()
@@ -115,32 +112,7 @@ func TestAdminModeration(t *testing.T) {
 		return w
 	}
 
-	if w := do(http.MethodGet, "/pending"); w.Code != http.StatusOK || w.Body.String() != "[]" {
-		t.Errorf("empty pending list: expected 200 [], got %d %s", w.Code, w.Body.String())
-	}
-
-	vehicleStore.Create(domain.VehiclePublication{ID: "p1", Status: domain.StatusPending})
 	vehicleStore.Create(domain.VehiclePublication{ID: "p2", Status: domain.StatusPending})
-	vehicleStore.Create(domain.VehiclePublication{ID: "sold", Status: domain.StatusSold})
-
-	var pending []domain.VehiclePublication
-	_ = json.Unmarshal(do(http.MethodGet, "/pending").Body.Bytes(), &pending)
-	if len(pending) != 2 {
-		t.Errorf("expected 2 pending, got %d", len(pending))
-	}
-
-	if w := do(http.MethodPatch, "/p1/approve"); w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"status":"APPROVED"`) {
-		t.Errorf("approve: expected 200 APPROVED, got %d %s", w.Code, w.Body.String())
-	}
-	if len(vehicleStore.FindApproved()) != 1 || len(vehicleStore.FindPending()) != 1 {
-		t.Error("approved publication must leave pending and appear in approved")
-	}
-	if w := do(http.MethodPatch, "/sold/approve"); w.Code != http.StatusConflict {
-		t.Errorf("approve sold: expected 409, got %d", w.Code)
-	}
-	if w := do(http.MethodPatch, "/nope/approve"); w.Code != http.StatusNotFound {
-		t.Errorf("approve missing: expected 404, got %d", w.Code)
-	}
 
 	if w := do(http.MethodDelete, "/p2"); w.Code != http.StatusNoContent {
 		t.Errorf("delete: expected 204, got %d", w.Code)

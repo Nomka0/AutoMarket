@@ -60,29 +60,6 @@ func (h *VehicleHandler) CreatePublication(c *gin.Context) {
 	c.JSON(http.StatusCreated, pub)
 }
 
-func (h *VehicleHandler) ListPending(c *gin.Context) {
-	c.JSON(http.StatusOK, h.vehicleStore.FindPending())
-}
-
-func (h *VehicleHandler) ApprovePublication(c *gin.Context) {
-	pub, ok := h.vehicleStore.FindByID(c.Param("id"))
-	if !ok {
-		c.JSON(http.StatusNotFound, gin.H{"error": "publicación no encontrada"})
-		return
-	}
-	// solo PENDING -> APPROVED: aprobar una vendida la devolveria al catalogo
-	if pub.Status != domain.StatusPending {
-		c.JSON(http.StatusConflict, gin.H{"error": "solo se pueden aprobar publicaciones pendientes"})
-		return
-	}
-	if !h.vehicleStore.UpdateStatus(pub.ID, domain.StatusApproved) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "publicación no encontrada"})
-		return
-	}
-	pub.Status = domain.StatusApproved
-	c.JSON(http.StatusOK, pub)
-}
-
 func (h *VehicleHandler) DeletePublication(c *gin.Context) {
 	if !h.vehicleStore.Delete(c.Param("id")) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "publicación no encontrada"})

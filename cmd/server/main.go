@@ -63,15 +63,18 @@ func main() {
 	authGroup.POST("/register", authHandler.Register)
 	authGroup.POST("/login", authHandler.Login)
 
-	vehicleHandler := handlers.NewVehicleHandler(store.NewVehicleStore(), userStore)
+	// un solo vehicle store: lo que publica el vendedor es lo que modera el admin
+	vehicleStore := store.NewVehicleStore()
+	vehicleHandler := handlers.NewVehicleHandler(vehicleStore, userStore)
+	adminHandler := handlers.NewAdminHandler(vehicleStore)
 	sellerGroup := r.Group("/api/seller")
 	sellerGroup.Use(auth.AuthMiddleware(tokenStore), auth.RequireRole(domain.RoleSeller))
 	sellerGroup.POST("/publications", vehicleHandler.CreatePublication)
 
 	adminGroup := r.Group("/api/admin")
 	adminGroup.Use(auth.AuthMiddleware(tokenStore), auth.RequireRole(domain.RoleAdmin))
-	adminGroup.GET("/publications/pending", vehicleHandler.ListPending)
-	adminGroup.PATCH("/publications/:id/approve", vehicleHandler.ApprovePublication)
+	adminGroup.GET("/publications/pending", adminHandler.GetPendingPublications)
+	adminGroup.PATCH("/publications/:id/approve", adminHandler.ApprovePublication)
 	adminGroup.DELETE("/publications/:id", vehicleHandler.DeletePublication)
 
 	if err := r.Run(":8080"); err != nil {
