@@ -109,7 +109,7 @@ func TestSetupAdmin(t *testing.T) {
 
 	// Registrar primer admin
 	w = httptest.NewRecorder()
-	req = httptest.NewRequest(http.MethodPost, "/api/auth/setup-admin", strings.NewReader(`{"username":"superadmin","password":"password123","contact_info":"admin@test.com"}`))
+	req = httptest.NewRequest(http.MethodPost, "/api/auth/setup-admin", strings.NewReader(`{"username":"superadmin","password":"password123"}`))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusCreated {

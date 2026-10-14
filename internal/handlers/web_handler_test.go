@@ -174,9 +174,8 @@ func TestWebHandler_AdminFlow(t *testing.T) {
 
 	// 1. Setup Admin inicial
 	adminForm := url.Values{
-		"username":     {"adminweb"},
-		"password":     {"adminpass123"},
-		"contact_info": {"admin@web.com"},
+		"username": {"adminweb"},
+		"password": {"adminpass123"},
 	}
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/setup-admin", strings.NewReader(adminForm.Encode()))

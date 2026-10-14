@@ -167,9 +167,12 @@ func (h *WebHandler) SetupAdminSubmit(c *gin.Context) {
 	username := strings.TrimSpace(c.PostForm("username"))
 	password := c.PostForm("password")
 	contactInfo := strings.TrimSpace(c.PostForm("contact_info"))
+	if contactInfo == "" {
+		contactInfo = "N/A"
+	}
 
-	if username == "" || password == "" || contactInfo == "" {
-		c.Redirect(http.StatusSeeOther, "/setup-admin?error="+url.QueryEscape("Todos los campos son obligatorios"))
+	if username == "" || password == "" {
+		c.Redirect(http.StatusSeeOther, "/setup-admin?error="+url.QueryEscape("Usuario y contraseña son obligatorios"))
 		return
 	}
 
