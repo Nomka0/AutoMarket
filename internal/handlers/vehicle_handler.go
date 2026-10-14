@@ -59,11 +59,3 @@ func (h *VehicleHandler) CreatePublication(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, pub)
 }
-
-func (h *VehicleHandler) DeletePublication(c *gin.Context) {
-	if !h.vehicleStore.Delete(c.Param("id")) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "publicación no encontrada"})
-		return
-	}
-	c.Status(http.StatusNoContent)
-}

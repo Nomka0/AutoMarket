@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -87,5 +89,67 @@ func TestApprovePublication(t *testing.T) {
 	}
 	if w := approve("nope"); w.Code != http.StatusNotFound {
 		t.Errorf("approve missing: expected 404, got %d", w.Code)
+	}
+}
+
+func TestDeletePublication(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	vehicleStore := store.NewVehicleStore()
+	r := gin.New()
+	r.DELETE("/:id", NewAdminHandler(vehicleStore).DeletePublication)
+
+	del := func(id string) *httptest.ResponseRecorder {
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, httptest.NewRequest(http.MethodDelete, "/"+id, nil))
+		return w
+	}
+
+	vehicleStore.Create(domain.VehiclePublication{ID: "p1", Status: domain.StatusPending})
+	vehicleStore.Create(domain.VehiclePublication{ID: "p2", Status: domain.StatusApproved})
+
+	if w := del("p1"); w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"message"`) {
+		t.Errorf("delete: expected 200 with message, got %d %s", w.Code, w.Body.String())
+	}
+	if _, ok := vehicleStore.FindByID("p1"); ok {
+		t.Error("deleted publication still stored")
+	}
+	if _, ok := vehicleStore.FindByID("p2"); !ok {
+		t.Error("other publications must not be deleted")
+	}
+	if w := del("p1"); w.Code != http.StatusNotFound {
+		t.Errorf("delete twice: expected 404, got %d", w.Code)
+	}
+}
+
+func TestDeletePublicationConcurrent(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	vehicleStore := store.NewVehicleStore()
+	r := gin.New()
+	r.DELETE("/:id", NewAdminHandler(vehicleStore).DeletePublication)
+	vehicleStore.Create(domain.VehiclePublication{ID: "p1", Status: domain.StatusPending})
+
+	// 20 borrados simultaneos de la misma publicacion: exactamente uno gana
+	codes := make(chan int, 20)
+	var wg sync.WaitGroup
+	for range 20 {
+		wg.Go(func() {
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, httptest.NewRequest(http.MethodDelete, "/p1", nil))
+			codes <- w.Code
+		})
+	}
+	wg.Wait()
+	close(codes)
+
+	ok := 0
+	for code := range codes {
+		if code == http.StatusOK {
+			ok++
+		} else if code != http.StatusNotFound {
+			t.Errorf("unexpected status %d", code)
+		}
+	}
+	if ok != 1 {
+		t.Errorf("expected exactly one 200, got %d", ok)
 	}
 }

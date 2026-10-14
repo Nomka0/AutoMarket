@@ -99,28 +99,3 @@ func TestCreatePublication(t *testing.T) {
 		t.Errorf("only the valid request must be stored, got %d", len(vehicleStore.FindPending()))
 	}
 }
-
-func TestDeletePublication(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	vehicleStore := store.NewVehicleStore()
-	r := gin.New()
-	r.DELETE("/:id", NewVehicleHandler(vehicleStore, store.NewUserStore()).DeletePublication)
-
-	do := func(method, path string) *httptest.ResponseRecorder {
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, httptest.NewRequest(method, path, nil))
-		return w
-	}
-
-	vehicleStore.Create(domain.VehiclePublication{ID: "p2", Status: domain.StatusPending})
-
-	if w := do(http.MethodDelete, "/p2"); w.Code != http.StatusNoContent {
-		t.Errorf("delete: expected 204, got %d", w.Code)
-	}
-	if _, ok := vehicleStore.FindByID("p2"); ok {
-		t.Error("deleted publication still stored")
-	}
-	if w := do(http.MethodDelete, "/p2"); w.Code != http.StatusNotFound {
-		t.Errorf("delete missing: expected 404, got %d", w.Code)
-	}
-}

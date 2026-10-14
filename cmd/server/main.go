@@ -75,7 +75,7 @@ func main() {
 	adminGroup.Use(auth.AuthMiddleware(tokenStore), auth.RequireRole(domain.RoleAdmin))
 	adminGroup.GET("/publications/pending", adminHandler.GetPendingPublications)
 	adminGroup.PATCH("/publications/:id/approve", adminHandler.ApprovePublication)
-	adminGroup.DELETE("/publications/:id", vehicleHandler.DeletePublication)
+	adminGroup.DELETE("/publications/:id", adminHandler.DeletePublication)
 
 	if err := r.Run(":8080"); err != nil {
 		panic(err)
