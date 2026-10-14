@@ -71,6 +71,13 @@ func main() {
 
 	vehicleStore := store.NewVehicleStore()
 	vehicleHandler := handlers.NewVehicleHandler(vehicleStore, userStore)
+
+	// publico: sin middleware de autenticacion, el visitante no necesita token
+	catalogHandler := handlers.NewCatalogHandler(vehicleStore)
+	catalogGroup := r.Group("/api/catalog")
+	catalogGroup.GET("", catalogHandler.GetCatalog)
+	catalogGroup.GET("/:id", catalogHandler.GetCatalogDetail)
+
 	sellerGroup := r.Group("/api/seller")
 	sellerGroup.Use(auth.AuthMiddleware(tokenStore), auth.RequireRole(domain.RoleSeller))
 	sellerGroup.POST("/vehicles", vehicleHandler.CreatePublication)
