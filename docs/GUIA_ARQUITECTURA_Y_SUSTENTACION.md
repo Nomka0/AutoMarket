@@ -64,18 +64,36 @@ internal/
 
 ## 3. Historias de Usuario y Ciclo de Vida del Vehículo
 
-```
-                                      Admin: DELETE
-                                      ┌───────────────┐
-                                      │   (Eliminada) │
-                                      └───────────────┘
-                                              ▲
-                                              │
-[ Vendedor: POST ]                      Admin:│Approve              Vendedor: PATCH
- ─────────────────►  ( PENDING )   ─────────────────────► ( APPROVED ) ───────────────► ( SOLD )
-  • No sale en        • Solo admin                         • Visible en                  • Sale del
-    catálogo            lo lista                             catálogo público              catálogo
-  • 404 a visitante   • 404 a visitante                    • Incluye seller_contact      • 404 a visitante
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: Vendedor: POST /api/seller/vehicles
+    PENDING --> APPROVED: Admin: PATCH /api/admin/publications/:id/approve
+    APPROVED --> SOLD: Vendedor dueño: PATCH /api/seller/vehicles/:id/sold
+    PENDING --> Eliminada: Admin: DELETE /api/admin/publications/:id
+    APPROVED --> Eliminada: Admin: DELETE /api/admin/publications/:id
+    Eliminada --> [*]
+    SOLD --> [*]
+
+    note right of PENDING
+        Estado PENDING:
+        - Oculto en catálogo público
+        - 404 Not Found para visitantes
+        - Solo visible para Administrador
+    end note
+
+    note right of APPROVED
+        Estado APPROVED:
+        - Visible en catálogo público
+        - Expone seller_contact al visitante
+        - 200 OK en consultas públicas
+    end note
+
+    note right of SOLD
+        Estado SOLD:
+        - Retirado del catálogo público
+        - 404 Not Found para visitantes
+        - Fin de ciclo de publicación
+    end note
 ```
 
 ### HU-VIS-01 (Visitante):
