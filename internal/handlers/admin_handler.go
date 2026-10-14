@@ -27,7 +27,8 @@ func (h *AdminHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	if _, ok := h.userStore.FindByID(id); !ok {
+	_, exists := h.userStore.FindByID(id)
+	if !exists {
 		c.JSON(http.StatusNotFound, gin.H{"error": "usuario no encontrado"})
 		return
 	}
