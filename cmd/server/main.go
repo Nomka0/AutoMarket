@@ -68,6 +68,11 @@ func main() {
 	sellerGroup.Use(auth.AuthMiddleware(tokenStore), auth.RequireRole(domain.RoleSeller))
 	sellerGroup.POST("/publications", vehicleHandler.CreatePublication)
 
+	adminHandler := handlers.NewAdminHandler(userStore, tokenStore)
+	adminGroup := r.Group("/api/admin")
+	adminGroup.Use(auth.AuthMiddleware(tokenStore), auth.RequireRole(domain.RoleAdmin))
+	adminGroup.DELETE("/users/:id", adminHandler.DeleteUser)
+
 	if err := r.Run(":8080"); err != nil {
 		panic(err)
 	}
