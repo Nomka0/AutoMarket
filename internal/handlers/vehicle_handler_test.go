@@ -48,15 +48,31 @@ func TestCreatePublication(t *testing.T) {
 	tokenStore := auth.NewTokenStore()
 	_ = userStore.Create(domain.User{ID: "seller-1", Username: "juan", Role: domain.RoleSeller, ContactInfo: "juan@mail.com"})
 
+	_ = userStore.Create(domain.User{ID: "admin-1", Username: "admin", Role: domain.RoleAdmin, ContactInfo: "admin@mail.com"})
+
 	r := gin.New()
-	r.POST("/api/vehicles", auth.AuthMiddleware(tokenStore), NewVehicleHandler(vehicleStore, userStore).CreatePublication)
+	sellerGroup := r.Group("/api/seller")
+	sellerGroup.Use(auth.AuthMiddleware(tokenStore), auth.RequireRole(domain.RoleSeller))
+	sellerGroup.POST("/vehicles", NewVehicleHandler(vehicleStore, userStore).CreatePublication)
 
 	post := func(token, body string) *httptest.ResponseRecorder {
 		w := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodPost, "/api/vehicles", strings.NewReader(body))
-		req.Header.Set("Authorization", "Bearer "+token)
+		req := httptest.NewRequest(http.MethodPost, "/api/seller/vehicles", strings.NewReader(body))
+		if token != "" {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
 		r.ServeHTTP(w, req)
 		return w
+	}
+
+	// sin autenticación debe retornar 401
+	if w := post("", `{"title":"Mazda 3","description":"Unico dueno","price":45000000,"year":2019}`); w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 without token, got %d", w.Code)
+	}
+
+	// rol no vendedor (admin) debe retornar 403
+	if w := post(tokenStore.CreateToken("admin-1", domain.RoleAdmin), `{"title":"Mazda 3","description":"Unico dueno","price":45000000,"year":2019}`); w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for non-seller role, got %d", w.Code)
 	}
 
 	// seller_id y status enviados por el cliente deben ignorarse

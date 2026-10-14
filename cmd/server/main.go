@@ -69,10 +69,11 @@ func main() {
 	authGroup.POST("/register", authHandler.Register)
 	authGroup.POST("/login", authHandler.Login)
 
-	vehicleHandler := handlers.NewVehicleHandler(store.NewVehicleStore(), userStore)
+	vehicleStore := store.NewVehicleStore()
+	vehicleHandler := handlers.NewVehicleHandler(vehicleStore, userStore)
 	sellerGroup := r.Group("/api/seller")
 	sellerGroup.Use(auth.AuthMiddleware(tokenStore), auth.RequireRole(domain.RoleSeller))
-	sellerGroup.POST("/publications", vehicleHandler.CreatePublication)
+	sellerGroup.POST("/vehicles", vehicleHandler.CreatePublication)
 
 	adminHandler := handlers.NewAdminHandler(userStore, tokenStore)
 	adminGroup := r.Group("/api/admin")
