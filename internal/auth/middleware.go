@@ -52,3 +52,56 @@ func GetCurrentUser(c *gin.Context) (Session, bool) {
 	s, ok := val.(Session)
 	return s, ok
 }
+
+func WebAuthMiddleware(store *TokenStore) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token, err := c.Cookie("token")
+		if err != nil || token == "" {
+			c.Redirect(http.StatusSeeOther, "/login")
+			c.Abort()
+			return
+		}
+
+		session, ok := store.ValidateToken(token)
+		if !ok {
+			c.SetCookie("token", "", -1, "/", "", false, true)
+			c.Redirect(http.StatusSeeOther, "/login")
+			c.Abort()
+			return
+		}
+		c.Set(currentUserKey, session)
+		c.Next()
+	}
+}
+
+func WebOptionalAuthMiddleware(store *TokenStore) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if token, err := c.Cookie("token"); err == nil && token != "" {
+			if session, ok := store.ValidateToken(token); ok {
+				c.Set(currentUserKey, session)
+			}
+		}
+		c.Next()
+	}
+}
+
+func WebRequireRole(allowedRoles ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		session, ok := GetCurrentUser(c)
+		if !ok {
+			c.Redirect(http.StatusSeeOther, "/login")
+			c.Abort()
+			return
+		}
+		if !slices.Contains(allowedRoles, session.Role) {
+			c.HTML(http.StatusForbidden, "error.html", gin.H{
+				"Title": "Acceso Denegado",
+				"Error": "Su rol no tiene autorización para acceder a este recurso.",
+				"User":  session,
+			})
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}

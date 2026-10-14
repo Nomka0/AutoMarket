@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>{{.Title}} - AutoMarket</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <div class="nav-container">
+      <a href="/catalog" class="logo">Auto<span>Market</span></a>
+      <nav>
+        <span class="nav-badge" style="background: #10b98120; color: #34d399; border: 1px solid #10b98140;">Visitante (Público)</span>
+        <a href="/catalog">Catálogo</a>
+        <a href="/register">Registrarse</a>
+        {{if not .HasAdmin}}
+          <a href="/setup-admin" style="color: var(--warning);">Setup Admin</a>
+        {{end}}
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="form-card">
+      <h2>Iniciar Sesión</h2>
+      
+      {{if .Error}}<div class="alert alert-error">{{.Error}}</div>{{end}}
+      {{if .Msg}}<div class="alert alert-success">{{.Msg}}</div>{{end}}
+
+      <form action="/login" method="POST">
+        <div class="form-group">
+          <label for="username">Usuario</label>
+          <input type="text" id="username" name="username" required autocomplete="username" autofocus>
+        </div>
+        <div class="form-group">
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" name="password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">Ingresar a la Plataforma</button>
+      </form>
+
+      <div style="margin-top: 1.5rem; text-align: center; font-size: 0.85rem; color: var(--text-muted);">
+        ¿No tienes cuenta? <a href="/register" style="color: var(--primary);">Regístrate como Vendedor</a>
+        {{if not .HasAdmin}}
+          <br><br>
+          <span style="color: var(--warning);">&bull; Sistema sin administrador:</span> <a href="/setup-admin" style="color: #fde047;">Crear Administrador Inicial</a>
+        {{end}}
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    AutoMarket &bull; Sistema Seguro de Venta de Vehículos &bull; Gin Framework
+  </footer>
+</body>
+</html>

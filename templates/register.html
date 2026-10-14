@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>{{.Title}} - AutoMarket</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <div class="nav-container">
+      <a href="/catalog" class="logo">Auto<span>Market</span></a>
+      <nav>
+        <span class="nav-badge" style="background: #10b98120; color: #34d399; border: 1px solid #10b98140;">Visitante (Público)</span>
+        <a href="/catalog">Catálogo</a>
+        <a href="/login">Ingresar</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="form-card">
+      <h2>Registro de Vendedor</h2>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">Regístrate de forma autónoma para publicar tus vehículos y gestionar tus ventas.</p>
+
+      {{if .Error}}<div class="alert alert-error">{{.Error}}</div>{{end}}
+
+      <form action="/register" method="POST">
+        <div class="form-group">
+          <label for="username">Nombre de Usuario</label>
+          <input type="text" id="username" name="username" required autocomplete="username" autofocus>
+        </div>
+        <div class="form-group">
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" name="password" required autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label for="contact_info">Datos de Contacto (Teléfono / Correo)</label>
+          <input type="text" id="contact_info" name="contact_info" placeholder="ej. 3123456789 / vendedor@correo.com" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">Completar Registro</button>
+      </form>
+
+      <div style="margin-top: 1.5rem; text-align: center; font-size: 0.85rem; color: var(--text-muted);">
+        ¿Ya tienes cuenta? <a href="/login" style="color: var(--primary);">Inicia Sesión</a>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    AutoMarket &bull; Sistema Seguro de Venta de Vehículos &bull; Gin Framework
+  </footer>
+</body>
+</html>

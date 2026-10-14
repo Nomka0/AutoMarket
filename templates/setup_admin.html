@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>{{.Title}} - AutoMarket</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <div class="nav-container">
+      <a href="/catalog" class="logo">Auto<span>Market</span></a>
+      <nav>
+        <a href="/catalog">Catálogo</a>
+        <a href="/login">Ingresar</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="form-card" style="border-color: #f59e0b50;">
+      <div style="background: #f59e0b15; border: 1px solid #f59e0b40; color: #fbbf24; padding: 0.6rem 0.8rem; border-radius: 6px; font-size: 0.8rem; margin-bottom: 1.25rem;">
+        &bull; <strong>Configuración Inicial</strong>: Esta pantalla solo está habilitada cuando la plataforma no cuenta con un Administrador registrado.
+      </div>
+
+      <h2>Crear Administrador Inicial</h2>
+
+      {{if .Error}}<div class="alert alert-error">{{.Error}}</div>{{end}}
+
+      <form action="/setup-admin" method="POST">
+        <div class="form-group">
+          <label for="username">Usuario Administrador</label>
+          <input type="text" id="username" name="username" placeholder="admin" required autocomplete="username" autofocus>
+        </div>
+        <div class="form-group">
+          <label for="password">Contraseña Segura</label>
+          <input type="password" id="password" name="password" required autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn btn-primary" style="background: var(--warning); color: #000; margin-top: 0.5rem;">Inicializar Cuenta Administrador</button>
+      </form>
+    </div>
+  </main>
+
+  <footer>
+    AutoMarket &bull; Sistema Seguro de Venta de Vehículos &bull; Gin Framework
+  </footer>
+</body>
+</html>

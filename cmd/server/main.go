@@ -55,6 +55,9 @@ func main() {
 	r := gin.Default()
 	r.Use(auth.AuditLogMiddleware(auditLogger))
 
+	r.Static("/static", "./static")
+	r.LoadHTMLGlob("templates/*")
+
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "pong",
@@ -93,6 +96,34 @@ func main() {
 	adminGroup.PATCH("/publications/:id/approve", adminHandler.ApprovePublication)
 	adminGroup.DELETE("/publications/:id", adminHandler.DeletePublication)
 	adminGroup.DELETE("/users/:id", adminHandler.DeleteUser)
+
+	// Rutas Web con plantillas HTML
+	webHandler := handlers.NewWebHandler(userStore, vehicleStore, tokenStore)
+
+	// Vistas públicas
+	r.GET("/", webHandler.Index)
+	r.GET("/catalog", auth.WebOptionalAuthMiddleware(tokenStore), webHandler.Catalog)
+	r.GET("/catalog/:id", auth.WebOptionalAuthMiddleware(tokenStore), webHandler.CatalogDetail)
+	r.GET("/login", auth.WebOptionalAuthMiddleware(tokenStore), webHandler.LoginPage)
+	r.POST("/login", webHandler.LoginSubmit)
+	r.GET("/logout", webHandler.Logout)
+	r.GET("/register", webHandler.RegisterPage)
+	r.POST("/register", webHandler.RegisterSubmit)
+	r.GET("/setup-admin", webHandler.SetupAdminPage)
+	r.POST("/setup-admin", webHandler.SetupAdminSubmit)
+
+	// Vistas protegidas Vendedor
+	sellerWeb := r.Group("/seller").Use(auth.WebAuthMiddleware(tokenStore), auth.WebRequireRole(domain.RoleSeller))
+	sellerWeb.GET("", webHandler.SellerDashboard)
+	sellerWeb.POST("/vehicles", webHandler.CreateVehicleSubmit)
+	sellerWeb.POST("/vehicles/:id/sold", webHandler.MarkSoldSubmit)
+
+	// Vistas protegidas Administrador
+	adminWeb := r.Group("/admin").Use(auth.WebAuthMiddleware(tokenStore), auth.WebRequireRole(domain.RoleAdmin))
+	adminWeb.GET("", webHandler.AdminDashboard)
+	adminWeb.POST("/publications/:id/approve", webHandler.ApprovePublicationSubmit)
+	adminWeb.POST("/publications/:id/delete", webHandler.DeletePublicationSubmit)
+	adminWeb.POST("/users/:id/delete", webHandler.DeleteUserSubmit)
 
 	if err := r.Run(":8080"); err != nil {
 		panic(err)

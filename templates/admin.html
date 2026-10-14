@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>{{.Title}} - AutoMarket</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <div class="nav-container">
+      <a href="/catalog" class="logo">Auto<span>Market</span></a>
+      <nav>
+        <a href="/catalog">Catálogo</a>
+        <a href="/admin" class="active">Panel Moderación</a>
+        <span class="nav-badge" style="background: #a855f720; color: #c084fc; border-color: #a855f740;">Admin</span>
+        <a href="/logout">Cerrar Sesión</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="hero">
+      <h1>Panel de Moderación y Administración</h1>
+      <p>Autoriza publicaciones pendientes y gestiona la integridad de la comunidad (HU-ADM-01).</p>
+    </div>
+
+    {{if .Error}}<div class="alert alert-error">{{.Error}}</div>{{end}}
+    {{if .Msg}}<div class="alert alert-success">{{.Msg}}</div>{{end}}
+
+    <!-- Sección 1: Publicaciones Pendientes de Aprobación -->
+    <div class="panel-section">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h3>Publicaciones Pendientes de Autorización</h3>
+        <span class="badge badge-pending">Por Revisar: {{.PendingCount}}</span>
+      </div>
+      {{if .PendingVehicles}}
+        <table>
+          <thead>
+            <tr>
+              <th>Vehículo</th>
+              <th>Año</th>
+              <th>Precio</th>
+              <th>Contacto Vendedor</th>
+              <th>Fecha Solicitud</th>
+              <th>Acciones de Moderación</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .PendingVehicles}}
+              <tr>
+                <td>
+                  <strong>{{.Title}}</strong><br>
+                  <small style="color: var(--text-muted);">{{.Description}}</small>
+                </td>
+                <td>{{.Year}}</td>
+                <td>${{printf "%.2f" .Price}}</td>
+                <td><small>{{.SellerContact}}</small></td>
+                <td><small>{{.CreatedAt.Format "02/01/2006 15:04"}}</small></td>
+                <td>
+                  <div style="display: flex; gap: 0.5rem;">
+                    <form action="/admin/publications/{{.ID}}/approve" method="POST" style="display:inline;">
+                      <button type="submit" class="btn btn-sm btn-success">Autorizar</button>
+                    </form>
+                    <form action="/admin/publications/{{.ID}}/delete" method="POST" style="display:inline;" onsubmit="return confirm('¿Seguro que desea eliminar esta publicación?');">
+                      <button type="submit" class="btn btn-sm btn-danger">Rechazar</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {{end}}
+          </tbody>
+        </table>
+      {{else}}
+        <p style="color: var(--text-muted); padding: 1rem 0;">No hay publicaciones pendientes de revisión. El catálogo se encuentra al día.</p>
+      {{end}}
+    </div>
+
+    <!-- Sección 2: Gestión de Usuarios -->
+    <div class="panel-section">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h3>Usuarios Registrados en la Plataforma</h3>
+        <span class="badge" style="background: #3b82f620; color: #93c5fd; border: 1px solid #3b82f640;">Total Usuarios: {{.UserCount}}</span>
+      </div>
+      {{if .Users}}
+        <table>
+          <thead>
+            <tr>
+              <th>ID Usuario</th>
+              <th>Nombre de Usuario</th>
+              <th>Rol</th>
+              <th>Información de Contacto</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{$currentUserID := .User.UserID}}
+            {{range .Users}}
+              <tr>
+                <td><small style="font-family: monospace; color: var(--text-muted);">{{.ID}}</small></td>
+                <td><strong>{{.Username}}</strong></td>
+                <td>
+                  {{if eq .Role "admin"}}
+                    <span class="badge" style="background: #a855f720; color: #c084fc; border: 1px solid #a855f740;">Admin</span>
+                  {{else}}
+                    <span class="badge" style="background: #3b82f620; color: #93c5fd; border: 1px solid #3b82f640;">Vendedor</span>
+                  {{end}}
+                </td>
+                <td><small>{{.ContactInfo}}</small></td>
+                <td>
+                  {{if eq .ID $currentUserID}}
+                    <small style="color: var(--text-muted);">(Sesión activa)</small>
+                  {{else}}
+                    <form action="/admin/users/{{.ID}}/delete" method="POST" style="display:inline;" onsubmit="return confirm('¿Desea eliminar a este usuario e invalidar sus sesiones activas?');">
+                      <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                    </form>
+                  {{end}}
+                </td>
+              </tr>
+            {{end}}
+          </tbody>
+        </table>
+      {{else}}
+        <p style="color: var(--text-muted); padding: 1rem 0;">No hay usuarios registrados en el sistema.</p>
+      {{end}}
+    </div>
+  </main>
+
+  <footer>
+    AutoMarket &bull; Sistema Seguro de Venta de Vehículos &bull; Gin Framework
+  </footer>
+</body>
+</html>

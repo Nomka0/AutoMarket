@@ -65,6 +65,16 @@ func (s *UserStore) Delete(id string) bool {
 	return true
 }
 
+func (s *UserStore) FindAll() []domain.User {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	res := make([]domain.User, 0, len(s.users))
+	for _, u := range s.users {
+		res = append(res, u)
+	}
+	return res
+}
+
 func (s *UserStore) HasAdmin() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

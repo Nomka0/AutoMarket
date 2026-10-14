@@ -73,14 +73,25 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": user.ID, "username": user.Username})
 }
 
+type SetupAdminRequest struct {
+	Username    string `json:"username" binding:"required"`
+	Password    string `json:"password" binding:"required"`
+	ContactInfo string `json:"contact_info"`
+}
+
 func (h *AuthHandler) SetupAdmin(c *gin.Context) {
-	var req RegisterRequest
+	var req SetupAdminRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "username, password and contact_info are required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username and password are required"})
 		return
 	}
 
-	admin, err := h.userStore.CreateAdmin(req.Username, req.Password, req.ContactInfo)
+	contactInfo := req.ContactInfo
+	if contactInfo == "" {
+		contactInfo = "N/A"
+	}
+
+	admin, err := h.userStore.CreateAdmin(req.Username, req.Password, contactInfo)
 	if err != nil {
 		if err.Error() == "admin user already exists" {
 			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
