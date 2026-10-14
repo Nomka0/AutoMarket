@@ -47,7 +47,13 @@ func main() {
 		log.Fatalf("failed to seed admin: %v", err)
 	}
 
+	auditLogger, err := auth.NewFileAuditLogger("audit.log")
+	if err != nil {
+		log.Fatalf("failed to init audit logger: %v", err)
+	}
+
 	r := gin.Default()
+	r.Use(auth.AuditLogMiddleware(auditLogger))
 
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
