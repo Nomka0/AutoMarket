@@ -10,39 +10,25 @@ Arquitectura por capas, bajo acoplamiento y flujo de dependencias del backend:
 
 ```mermaid
 flowchart TD
-    Client(["Cliente HTTP"]) --> Gin["Gin Engine (github.com/gin-gonic/gin)"]
+    Client(["Cliente HTTP"]) --> Gin["Gin Engine (Única dependencia)"]
 
     subgraph Pipeline["Pipeline de Seguridad AAA (internal/auth)"]
-        Audit["AuditLogMiddleware<br/><i>(Accounting)</i>"]
-        Auth["AuthMiddleware<br/><i>(Authentication: Bearer)</i>"]
-        RBAC["RequireRole<br/><i>(Authorization: RBAC)</i>"]
-        Audit --> Auth --> RBAC
-    end
-
-    subgraph Handlers["internal/handlers"]
-        H["Handlers HTTP<br/>• AuthHandler (Register, Login)<br/>• VehicleHandler (Create, MarkAsSold)<br/>• AdminHandler (Moderación, DeleteUser)<br/>• CatalogHandler (Catálogo público)"]
-    end
-
-    subgraph Stores["internal/store + auth (sync.RWMutex)"]
         direction LR
-        US["UserStore"]
-        VS["VehicleStore"]
-        TS["TokenStore (TTL 24h)"]
+        Audit["AuditLogMiddleware<br/><i>(Accounting)</i>"] --> Auth["AuthMiddleware<br/><i>(Authentication)</i>"] --> RBAC["RequireRole<br/><i>(Authorization)</i>"]
     end
 
-    subgraph Domain["internal/domain"]
-        D["Entidades puras: User & VehiclePublication"]
+    subgraph Core["Capa Aplicación y Persistencia (internal/)"]
+        direction LR
+        H["Handlers HTTP<br/>(Auth, Vehicle, Admin, Catalog)"]
+        S["Stores (sync.RWMutex)<br/>UserStore | VehicleStore | TokenStore"]
+        D["Domain Models<br/>User | VehiclePublication"]
+        H --> S --> D
     end
-
-    Log[("audit.log<br/>(JSONL)")]
 
     Gin --> Audit
     RBAC --> H
-    H --> Stores
-    Stores --> Domain
-    Audit -.->|Escritura concurrente| Log
-    Auth -.->|Validación de sesión| TS
-    H -.->|Hash SHA-256 + Salt| Crypto["crypto.go (stdlib)"]
+    Audit -.-> Log[("audit.log (JSONL)")]
+    H -.-> Crypto["crypto.go (stdlib)"]
 ```
 
 ---
