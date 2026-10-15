@@ -78,6 +78,7 @@ El documento debe incluir exactamente **dos (2) diagramas**:
 * **Authentication**: Explicar la sustitución de JWT/bcrypt por funciones nativas de la biblioteca estándar (`crypto/rand` y `crypto/sha256`) con Salt único por usuario y tokens aleatorios de 32 bytes con expiración de 24 horas.
 * **Authorization**: Explicar el middleware RBAC (`RequireRole`) y el control horizontal de recursos (un vendedor solo puede marcar como vendido su propio vehículo).
 * **Accounting**: Describir el `AuditLogMiddleware` y la estructura de los registros JSON Lines en `audit.log`.
+* **Persistencia y Protección de Datos en Disco**: Explicar la persistencia sin librerías externas mediante archivos JSON locales (`data/users.json`, `data/vehicles.json`), la coordinación de concurrencia con `sync.RWMutex` para evitar condiciones de carrera, y la separación estricta entre entidades de dominio (que persisten hash/salt) y DTOs de salida HTTP (que impiden fugas de credenciales).
 * **Historias de Usuario**:
   * `HU-VIS-01`: Catálogo público accesible a visitantes sin token; aislamiento de vehículos pendientes y vendidos con respuesta uniforme `404 Not Found`.
   * `HU-VEN-01`: Publicación forzada en `PENDING` y reporte de venta (`SOLD`).
