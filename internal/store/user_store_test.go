@@ -139,4 +139,52 @@ func TestSeedAdminOptional(t *testing.T) {
 	}
 }
 
+func TestUserStore_JSONPersistence(t *testing.T) {
+	tmpDir := t.TempDir()
+	filePath := tmpDir + "/users_test.json"
+
+	s1 := NewUserStore(filePath)
+	u1 := domain.User{
+		ID:           "u-persist-1",
+		Username:     "persistuser",
+		PasswordHash: "dummyhash",
+		Salt:         "dummysalt",
+		Role:         domain.RoleSeller,
+	}
+	if err := s1.Create(u1); err != nil {
+		t.Fatalf("failed to create user: %v", err)
+	}
+	if _, err := s1.CreateAdmin("persistadmin", "secret123", "admin@persist.com"); err != nil {
+		t.Fatalf("failed to create admin: %v", err)
+	}
+
+	// Simular reinicio creando una nueva instancia apuntando al mismo archivo
+	s2 := NewUserStore(filePath)
+	loadedUser, ok := s2.FindByID("u-persist-1")
+	if !ok || loadedUser.Username != "persistuser" {
+		t.Fatalf("expected persisted user to be loaded, got ok=%v, user=%+v", ok, loadedUser)
+	}
+	if loadedUser.PasswordHash != "dummyhash" || loadedUser.Salt != "dummysalt" {
+		t.Fatalf("expected password hash and salt to be persisted, got hash=%s, salt=%s", loadedUser.PasswordHash, loadedUser.Salt)
+	}
+
+	loadedAdmin, ok := s2.FindByUsername("persistadmin")
+	if !ok || !auth.CheckPassword("secret123", loadedAdmin.Salt, loadedAdmin.PasswordHash) {
+		t.Fatal("expected admin password to be verifiable after reload from JSON")
+	}
+	if !s2.HasAdmin() {
+		t.Fatal("expected persisted admin to be loaded")
+	}
+
+	// Verificar eliminación persistida
+	if !s2.Delete("u-persist-1") {
+		t.Fatal("expected delete to succeed")
+	}
+
+	s3 := NewUserStore(filePath)
+	if _, ok := s3.FindByID("u-persist-1"); ok {
+		t.Fatal("expected deleted user to remain deleted after reload")
+	}
+}
+
 
