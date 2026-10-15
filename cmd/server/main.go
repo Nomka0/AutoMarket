@@ -42,7 +42,14 @@ func loadEnv(path string) {
 func main() {
 	loadEnv(".env")
 
-	userStore := store.NewUserStore()
+	usersPath := "data/users.json"
+	vehiclesPath := "data/vehicles.json"
+	if os.Getenv("STORAGE_MODE") == "memory" {
+		usersPath = ""
+		vehiclesPath = ""
+	}
+
+	userStore := store.NewUserStore(usersPath)
 	if err := store.SeedAdmin(userStore); err != nil {
 		log.Printf("seed admin note: %v", err)
 	}
@@ -75,7 +82,7 @@ func main() {
 	authGroup.POST("/register-admin", authHandler.SetupAdmin)
 	authGroup.GET("/has-admin", authHandler.HasAdmin)
 
-	vehicleStore := store.NewVehicleStore()
+	vehicleStore := store.NewVehicleStore(vehiclesPath)
 	vehicleHandler := handlers.NewVehicleHandler(vehicleStore, userStore)
 
 	// publico: sin middleware de autenticacion, el visitante no necesita token

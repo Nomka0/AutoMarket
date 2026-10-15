@@ -1,26 +1,68 @@
 package store
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"automarket/internal/domain"
 )
 
 type VehicleStore struct {
-	mu   sync.RWMutex
-	pubs map[string]domain.VehiclePublication
+	mu       sync.RWMutex
+	pubs     map[string]domain.VehiclePublication
+	filePath string
 }
 
-func NewVehicleStore() *VehicleStore {
-	return &VehicleStore{
+func NewVehicleStore(filePath ...string) *VehicleStore {
+	s := &VehicleStore{
 		pubs: make(map[string]domain.VehiclePublication),
 	}
+	if len(filePath) > 0 && filePath[0] != "" {
+		s.filePath = filePath[0]
+		_ = s.load()
+	}
+	return s
+}
+
+func (s *VehicleStore) load() error {
+	data, err := os.ReadFile(s.filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	var loaded map[string]domain.VehiclePublication
+	if err := json.Unmarshal(data, &loaded); err != nil {
+		return err
+	}
+	if loaded != nil {
+		s.pubs = loaded
+	}
+	return nil
+}
+
+func (s *VehicleStore) save() error {
+	if s.filePath == "" {
+		return nil
+	}
+	if dir := filepath.Dir(s.filePath); dir != "" && dir != "." {
+		_ = os.MkdirAll(dir, 0755)
+	}
+	data, err := json.MarshalIndent(s.pubs, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(s.filePath, data, 0644)
 }
 
 func (s *VehicleStore) Create(pub domain.VehiclePublication) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.pubs[pub.ID] = pub
+	_ = s.save()
 }
 
 func (s *VehicleStore) FindByID(id string) (domain.VehiclePublication, bool) {
@@ -75,6 +117,7 @@ func (s *VehicleStore) UpdateStatus(id, newStatus string) bool {
 	}
 	pub.Status = newStatus
 	s.pubs[id] = pub
+	_ = s.save()
 	return true
 }
 
@@ -85,6 +128,7 @@ func (s *VehicleStore) Delete(id string) bool {
 		return false
 	}
 	delete(s.pubs, id)
+	_ = s.save()
 	return true
 }
 

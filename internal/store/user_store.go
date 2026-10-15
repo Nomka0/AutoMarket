@@ -1,8 +1,10 @@
 package store
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"automarket/internal/auth"
@@ -10,14 +12,52 @@ import (
 )
 
 type UserStore struct {
-	mu    sync.RWMutex
-	users map[string]domain.User // clave: ID de usuario
+	mu       sync.RWMutex
+	users    map[string]domain.User // clave: ID de usuario
+	filePath string
 }
 
-func NewUserStore() *UserStore {
-	return &UserStore{
+func NewUserStore(filePath ...string) *UserStore {
+	s := &UserStore{
 		users: make(map[string]domain.User),
 	}
+	if len(filePath) > 0 && filePath[0] != "" {
+		s.filePath = filePath[0]
+		_ = s.load()
+	}
+	return s
+}
+
+func (s *UserStore) load() error {
+	data, err := os.ReadFile(s.filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	var loaded map[string]domain.User
+	if err := json.Unmarshal(data, &loaded); err != nil {
+		return err
+	}
+	if loaded != nil {
+		s.users = loaded
+	}
+	return nil
+}
+
+func (s *UserStore) save() error {
+	if s.filePath == "" {
+		return nil
+	}
+	if dir := filepath.Dir(s.filePath); dir != "" && dir != "." {
+		_ = os.MkdirAll(dir, 0755)
+	}
+	data, err := json.MarshalIndent(s.users, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(s.filePath, data, 0644)
 }
 
 func (s *UserStore) Create(u domain.User) error {
@@ -31,6 +71,7 @@ func (s *UserStore) Create(u domain.User) error {
 	}
 
 	s.users[u.ID] = u
+	_ = s.save()
 	return nil
 }
 
@@ -62,6 +103,7 @@ func (s *UserStore) Delete(id string) bool {
 		return false
 	}
 	delete(s.users, id)
+	_ = s.save()
 	return true
 }
 
@@ -111,6 +153,7 @@ func (s *UserStore) CreateAdmin(username, password, contactInfo string) (domain.
 	}
 
 	s.users[admin.ID] = admin
+	_ = s.save()
 	return admin, nil
 }
 

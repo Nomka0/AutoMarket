@@ -90,3 +90,54 @@ func TestVehicleStore_Concurrency(t *testing.T) {
 
 	wg.Wait()
 }
+
+func TestVehicleStore_JSONPersistence(t *testing.T) {
+	tmpDir := t.TempDir()
+	filePath := tmpDir + "/vehicles_test.json"
+
+	s1 := store.NewVehicleStore(filePath)
+	pub := domain.VehiclePublication{
+		ID:            "v-persist-1",
+		SellerID:      "seller-1",
+		SellerContact: "seller@test.com",
+		Title:         "Mazda CX-30",
+		Description:   "Excelente estado",
+		Price:         85000000,
+		Year:          2022,
+		Status:        domain.StatusPending,
+		CreatedAt:     time.Now().UTC(),
+	}
+	s1.Create(pub)
+
+	// Simular reinicio
+	s2 := store.NewVehicleStore(filePath)
+	found, ok := s2.FindByID("v-persist-1")
+	if !ok || found.Title != "Mazda CX-30" {
+		t.Fatalf("expected persisted vehicle, got ok=%v, pub=%+v", ok, found)
+	}
+	if len(s2.FindPending()) != 1 {
+		t.Fatalf("expected 1 pending vehicle, got %d", len(s2.FindPending()))
+	}
+
+	// Actualizar estado y verificar persistencia
+	if !s2.UpdateStatus("v-persist-1", domain.StatusApproved) {
+		t.Fatal("expected update status to succeed")
+	}
+
+	s3 := store.NewVehicleStore(filePath)
+	approved := s3.FindApproved()
+	if len(approved) != 1 || approved[0].Status != domain.StatusApproved {
+		t.Fatalf("expected 1 approved vehicle in reloaded store, got %d", len(approved))
+	}
+
+	// Eliminar y verificar persistencia
+	if !s3.Delete("v-persist-1") {
+		t.Fatal("expected delete to succeed")
+	}
+
+	s4 := store.NewVehicleStore(filePath)
+	if _, ok := s4.FindByID("v-persist-1"); ok {
+		t.Fatal("expected deleted vehicle to remain deleted after reload")
+	}
+}
+
