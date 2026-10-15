@@ -136,7 +136,6 @@ stateDiagram-v2
 * **Mecanismo de Ciclo de Vida:**
   * **Carga inicial (`load()`):** Al iniciar el servidor (`NewUserStore`, `NewVehicleStore`), lee `data/users.json` y `data/vehicles.json`. Si el archivo no existe aún (`os.IsNotExist`), arranca el mapa vacío en memoria sin abortar la ejecución.
   * **Guardado tras mutación (`save()`):** En cada operación de escritura (`Create`, `UpdateStatus`, `Delete`, `CreateAdmin`), serializa el mapa completo con `json.MarshalIndent` y lo escribe en disco con permisos `0644`. Crea la carpeta `data/` (`0755`) si no existe.
-  * **Modo en memoria (`STORAGE_MODE=memory`):** Si la variable de entorno está activa o la ruta está vacía, no toca el disco. Permite ejecutar pruebas unitarias aisladas sin efectos secundarios en el sistema de archivos.
 
 ### B. Ciberseguridad: ¿Por qué serializar `password_hash` y `salt` no fuga información?
 * **El dilema de persistencia:**
