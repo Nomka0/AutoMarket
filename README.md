@@ -1,115 +1,82 @@
-# Taller en Equipo
+# AutoMarket 🚗
 
-## Implementación de AAA en sitio web
-
-**Ciberseguridad**
-
-Iván M. Cabezas T,
+Plataforma web en Go para la compra y venta segura de vehículos usados. El proyecto implementa el marco de seguridad **AAA** (*Authentication, Authorization, Accounting*) y las 3 Historias de Usuario del taller sin usar librerías externas adicionales.
 
 ---
 
-## Contexto - AutoMarket
+## 👥 Integrantes (Equipo)
+* **Angulo Nieves, Jhon Steven**
+* **Bolaños Delgado, Juan José**
+* **Giraldo, Javier**
+* **Robledo Delgado, Braulio**
 
-• Sitio web para el despliegue de información sobre venta de vehículos usados. La plataforma expone un catálogo público de publicaciones y ofrece funcionalidades diferenciadas según el tipo de usuario que la consuma.  
-• Su equipo actuará como **desarrollador de un componente backend** del sistema.  
-• El docente actuará como **líder técnico y revisor del VIDEO** asociado al Pull Request que ustedes entregarán.
-
----
-
-## Roles del sistema
-
-• Descripción de los roles del sitema
-
-| Rol               | Descripción                                                                                           |
-| :---------------- | :---------------------------------------------------------------------------------------------------- |
-| **Visitante**     | Persona no autenticada que consulta el catálogo público y los datos de contacto de los vendedores     |
-| **Vendedor**      | Persona registrada y autenticada que publica sus vehículos en venta y reporta sus ventas.             |
-| **Administrador** | Persona autenticada con privilegios para autorizar publicaciones y eliminar publicaciones o usuarios. |
+* **Docente:** Iván M. Cabezas T.  
+* **Materia:** Ciberseguridad  
 
 ---
 
-## Historia de Usuario · Visitante
+## 🚀 Cómo arrancar el proyecto
 
-• **HU-VIS-01 · Consulta pública del catálogo y de la información de contacto**
+1. **Clonar el repo y entrar:**
+   ```bash
+   git clone https://github.com/Nomka0/AutoMarket.git
+   cd AutoMarket
+   ```
 
-**Como** visitante del sitio,  
-**quiero** consultar el catálogo de vehículos en venta y acceder a la información de contacto del vendedor,  
-**para** evaluar la oferta y comunicarme directamente con quien ofrece un vehículo de mi interés, sin necesidad de registrarme.
+2. **Prender el servidor:**
+   ```bash
+   go run ./cmd/server
+   ```
+   El servidor queda listo escuchando en `http://localhost:8080`.
 
-**Criterio de Aceptación :**  
-**Dado** que soy un visitante no autenticado,  
-**cuando** consulto un vehículo del catálogo público,  
-**entonces** el sistema me responde con la información del vehículo y con los datos de contacto del vendedor asociado.
-
----
-
-## Historia de Usuario · Vendedor
-
-• **HU-VEN-01 · Publicación y gestión autónoma de vehículos en venta**
-
-**Como** vendedor,  
-**quiero** registrarme autónomamente en la plataforma, publicar mis vehículos en venta y reportar cuando los venda,  
-**para** ofrecer mis vehículos en el catálogo y retirarlos cuando concrete la operación.
-
-**Criterio de Aceptación :**  
-**Dado** que soy un vendedor registrado y autenticado,  
-**cuando** envío la solicitud de publicación de un vehículo con datos válidos,  
-**entonces** el sistema registra la publicación en estado pendiente de aprobación asociándola a mi cuenta.
+3. **Correr las pruebas:**
+   * Pruebas unitarias de Go:
+     ```bash
+     go test ./...
+     ```
+   * Prueba de todos los flujos de punta a punta (con el server corriendo en otra terminal):
+     ```bash
+     ./test_flows.sh
+     ```
 
 ---
 
-## Historia de Usuario · Administrador
+## 🖥️ Cómo usar la plataforma (Roles)
 
-• **HU-ADM-01 · Moderación de publicaciones y usuario**
+Abre en tu navegador `http://localhost:8080/catalog`:
 
-**Como** administrador del sitio,  
-**quiero** autorizar las publicaciones enviadas por los vendedores y eliminar publicaciones o usuarios cuando sea necesario,  
-**para** garantizar la calidad e integridad del catálogo y de la comunidad de la plataforma..
-
-**Criterio de Aceptación :**  
-**Dado** que soy un administrador autenticado,  
-**cuando** autorizo una publicación en estado pendiente de aprobación,  
-**entonces** el sistema cambia su estado a publicada y la hace visible en el catálogo público.
-
----
-
-## Requerimiento Funcional
-
-• **RF-01 · Marco de seguridad AAA**  
-El sistema deberá implementar el marco de seguridad AAA (_Authentication, Authorization, Accounting_) sobre todas las operaciones expuestas por la API.
-
-### Authentication
-
-• Cuando un solicitante intente ejecutar una operación sobre un recurso protegido, el sistema deberá autenticar su identidad antes de procesar la solicitud.
-
-### Authorization
-
-• Cuando un solicitante autenticado invoque una operación, el sistema deberá autorizarla conforme al rol asignado al solicitante.
-
-### Accounting
-
-• Cuando el sistema ejecute cualquier operación sobre un recurso, deberá registrarla de forma trazable e íntegra.
+* **Visitante (Público):** Entras directo sin cuenta. Puedes mirar los autos publicados y ver el contacto del vendedor. No ves autos pendientes ni vendidos.
+* **Vendedor:**
+  1. Haces clic en **Registrarse** (`/register`), pones tu usuario, clave y datos de contacto.
+  2. Inicias sesión en `/login`.
+  3. Desde **Mi Panel** publicas un auto. La publicación queda en estado **Pendiente** hasta que el admin la revise.
+  4. Cuando vendas el auto, lo marcas como vendido y se quita automáticamente del catálogo.
+* **Administrador:**
+  1. Si es la primera vez que corre la app y no hay admin, te saldrá el botón discreto **Setup Admin** arriba a la derecha (o vas directo a `/setup-admin`). Solo deja crear un administrador.
+  2. También puedes precargarlo creando un archivo `.env` con `ADMIN_USERNAME` y `ADMIN_PASSWORD`.
+  3. Desde el **Panel Admin** (`/admin`), autorizas o rechazas autos pendientes y puedes eliminar cuentas si es necesario.
 
 ---
 
-## Restricciones técnicas
+## 📁 Archivos clave y qué hace cada uno
 
-• **Lenguaje:** Go (solo standard library).  
-• **Framework web:** Gin (`github.com/gin-gonic/gin`) como **única dependencia externa permitida**.  
-• **Protocolo:** HTTP (sin TLS/HTTPS en esta entrega).  
-• **Persistencia:** libre elección del equipo, siempre dentro de las restricciones anteriores.  
-• **Prohibido:** cualquier librería externa adicional (JWT, bcrypt, Casbin, Zap, ORMs, drivers de BD, entre otros).
+* `data/`: Carpeta local donde se guardan `users.json` y `vehicles.json`. Permite que no se borren los autos ni usuarios al reiniciar el server. Está en el `.gitignore` para no subir datos de prueba al repositorio.
+* `audit.log`: Archivo donde se anota cada petición que entra al backend (quién fue, qué rol tenía, qué ruta tocó, código HTTP y cuánto tardó en milisegundos). Esto cumple el requisito de *Accounting* (auditoría y trazabilidad).
+* `templates/` y `static/`: Contienen las vistas HTML y estilos CSS con diseño oscuro (*Showroom Titanium & Crimson Racing*).
+* `cmd/server/main.go`: Punto de entrada que arranca Gin, lee las plantillas y conecta todo.
+* `internal/`:
+  * `auth/`: La seguridad (generación de Salt, hashing de contraseñas, tokens de sesión y middlewares).
+  * `store/`: Almacenes concurrentes (`sync.RWMutex`) con guardado a JSON.
+  * `handlers/`: Los controladores que procesan las peticiones web y de la API.
+  * `domain/`: Los modelos de datos (`User`, `VehiclePublication`).
 
 ---
 
-## Alcance y Entrega
+## 🔒 Cosas importantes que pide el taller (Ciberseguridad)
 
-### ALCANCE
-
-• La solución debe ceñirse **estrictamente** a lo pedido en las HUs y en el RF-01.  
-• Se penalizarán funcionalidades, endpoints, mecanismos o capacidades **no solicitadas** en los artefactos entregados, aunque el equipo las considere "buenas prácticas".  
-• La calidad inherente al código (tales como separación de responsabilidades, cohesión, bajo acoplamiento, manejo consistente de errores y ausencia de duplicación, entre otros), y el entendimiento del mismo, durante el video, o en sesiones de sustentación en vivo, será factor de evaluación.
-
-### ENTREGA
-
-• Un único archivo PDF que incluya: portada, integrantes (Apellido – Nombre, en orden alfabético), URL de repositorio y hash del commit, invitación al Usuario **imcabezas**, URL del video de demostración/sustentación, un (1) diagrama de estructura y un (1) diagrama de comportamiento de la solución, declaración de uso responsable de IA.
+* **Solo Gin en `go.mod`:** Como pidió el profe, `github.com/gin-gonic/gin` es la **única** dependencia externa directa permitida.
+* **Criptografía sin librerías raras:** Nada de usar JWT ni bcrypt. Todo el manejo de claves se hizo con la librería estándar de Go:
+  * Hashes con `crypto/sha256`.
+  * **Salt único:** Cada usuario tiene 16 bytes aleatorios generados con `crypto/rand` para evitar ataques de tablas arcoíris.
+  * Comparación de contraseñas en tiempo constante (`subtle.ConstantTimeCompare`) para evitar ataques de temporización (*timing attacks*).
+* **Control de acceso (RBAC):** Nadie entra a rutas de vendedor o admin sin token válido, y un vendedor solo puede marcar como vendido su propio vehículo.

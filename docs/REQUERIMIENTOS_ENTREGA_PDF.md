@@ -94,8 +94,8 @@ El documento debe incluir exactamente **dos (2) diagramas**:
 
 ## 3. Checklist Previo a la Generación del PDF
 
-- [ ] Orden alfabético estricto de integrantes por Apellido: Angulo Nieves, Bolaños Delgado, Giraldo, Robledo Delgado.
-- [ ] Commit hash verificado en la rama `main` de GitHub.
+- [x] Orden alfabético estricto de integrantes por Apellido: Angulo Nieves, Bolaños Delgado, Giraldo, Robledo Delgado.
+- [x] Commit hash verificado en la rama `main` de GitHub.
 - [ ] Usuario `imcabezas` invitado formalmente como colaborador al repositorio.
 - [ ] Video grabado, subido y con enlace verificado en modo incógnito (sin restricciones de acceso).
 - [x] Diagrama 1: Estructura de paquetes Go incluido con alta resolución.
