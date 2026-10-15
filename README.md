@@ -28,7 +28,6 @@ Plataforma web en Go para la compra y venta segura de vehículos usados. El proy
    go run ./cmd/server
    ```
    El servidor queda listo escuchando en `http://localhost:8080`.
-   *(Opcional: usar `STORAGE_MODE=memory go run ./cmd/server` para arrancar en memoria pura sin tocar disco).*
 
 3. **Correr las pruebas:**
    * Pruebas unitarias de Go:
