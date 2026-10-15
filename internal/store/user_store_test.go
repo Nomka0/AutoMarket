@@ -164,6 +164,14 @@ func TestUserStore_JSONPersistence(t *testing.T) {
 	if !ok || loadedUser.Username != "persistuser" {
 		t.Fatalf("expected persisted user to be loaded, got ok=%v, user=%+v", ok, loadedUser)
 	}
+	if loadedUser.PasswordHash != "dummyhash" || loadedUser.Salt != "dummysalt" {
+		t.Fatalf("expected password hash and salt to be persisted, got hash=%s, salt=%s", loadedUser.PasswordHash, loadedUser.Salt)
+	}
+
+	loadedAdmin, ok := s2.FindByUsername("persistadmin")
+	if !ok || !auth.CheckPassword("secret123", loadedAdmin.Salt, loadedAdmin.PasswordHash) {
+		t.Fatal("expected admin password to be verifiable after reload from JSON")
+	}
 	if !s2.HasAdmin() {
 		t.Fatal("expected persisted admin to be loaded")
 	}
