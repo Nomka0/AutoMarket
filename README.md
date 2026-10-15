@@ -28,6 +28,7 @@ Plataforma web en Go para la compra y venta segura de vehículos usados. El proy
    go run ./cmd/server
    ```
    El servidor queda listo escuchando en `http://localhost:8080`.
+   *(Opcional: usar `STORAGE_MODE=memory go run ./cmd/server` para arrancar en memoria pura sin tocar disco).*
 
 3. **Correr las pruebas:**
    * Pruebas unitarias de Go:
@@ -80,3 +81,5 @@ Abre en tu navegador `http://localhost:8080/catalog`:
   * **Salt único:** Cada usuario tiene 16 bytes aleatorios generados con `crypto/rand` para evitar ataques de tablas arcoíris.
   * Comparación de contraseñas en tiempo constante (`subtle.ConstantTimeCompare`) para evitar ataques de temporización (*timing attacks*).
 * **Control de acceso (RBAC):** Nadie entra a rutas de vendedor o admin sin token válido, y un vendedor solo puede marcar como vendido su propio vehículo.
+* **Persistencia segura y sin fugas de datos:** La persistencia a `data/users.json` y `data/vehicles.json` se logra únicamente con la biblioteca estándar (`encoding/json`, `os`). Aunque el archivo en disco guarda `password_hash` y `salt`, la API pública jamás los expone porque los controladores devuelven DTOs explícitos.
+* **Sesiones volátiles en memoria:** Los tokens de sesión viven exclusivamente en RAM con TTL (24h); al apagar el servidor se invalidan limpiamente y nunca quedan tokens activos expuestos en archivos del disco.

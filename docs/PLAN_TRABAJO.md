@@ -87,15 +87,21 @@ Para lograr paralelismo sin pisarse código y con interfaces claras, la arquitec
   2. Script de pruebas / colección Postman o cURL demostrando todo el flujo de inicio a fin.
   3. Diagramas requeridos para el informe PDF:
      - **Diagrama de Estructura:** Diagrama de paquetes/componentes en Go (Clean Architecture / capas).
-     - **Diagrama de Comportamiento:** Diagrama de secuencia del flujo AAA (p. ej., Vendedor envía publicación -> A
-	 - **US-01 [Dev 2] Setup del Repositorio y Gin** `[ClickUp #86e3mc6x3]`
+     - **Diagrama de Comportamiento:** Diagrama de secuencia del flujo AAA (p. ej., Vendedor envía publicación -> Auth -> Store).
+
+---
+
+## 5. Backlog Scrum (Historias de Usuario y Tareas Técnicas)
+
+### 📋 SPRINT 1: Arquitectura Base, Persistencia y Núcleo AAA
+- **US-01 [Dev 2] Setup del Repositorio y Gin** `[ClickUp #86e3mc6x3]`
   - Inicializar `go mod init automarket` e instalar `github.com/gin-gonic/gin`.
   - Crear estructura: `cmd/server/`, `internal/domain/`, `internal/store/`, `internal/handlers/`, `internal/auth/`.
   - Crear `main.go` básico con endpoint `/ping` (200 OK) para probar el servidor.
-  - Asegurar `.gitignore` para Go.
+  - Asegurar `.gitignore` para Go y carpeta `data/`.
 - **US-02 [Dev 2] Modelo y Repositorio de Usuarios** `[ClickUp #86e3mc6xk]`
   - Struct `User` en `internal/domain/user.go` (`ID`, `Username`, `PasswordHash`, `Salt`, `Role`, `ContactInfo`).
-  - Almacén en memoria `UserStore` usando `map[string]User` protegido con `sync.RWMutex`.
+  - Almacén concurrente `UserStore` (`sync.RWMutex`) con persistencia dual en memoria (`map`) y respaldo a archivo JSON (`data/users.json`, stdlib).
   - Métodos: `Create`, `FindByUsername`, `FindByID`, `Delete`.
   - Función de arranque para crear un usuario inicial `admin`.
 - **US-03 [Dev 1] Módulo Criptográfico Stdlib (Hash & Salt & Token)** `[ClickUp #86e3mc6y4]`
@@ -115,7 +121,7 @@ Para lograr paralelismo sin pisarse código y con interfaces claras, la arquitec
 ### 📋 SPRINT 2: Funcionalidades de Negocio (HUs)
 - **US-06 [Dev 3] Modelo y Repositorio de Publicaciones** `[ClickUp #86e3mc6zy]`
   - Struct `VehiclePublication` (`ID`, `SellerID`, `Title`, `Description`, `Price`, `Year`, `Status: PENDING | APPROVED | SOLD`, `ContactInfo`).
-  - Almacén en memoria `PublicationStore` protegido con `sync.RWMutex`.
+  - Almacén concurrente `VehicleStore` (`sync.RWMutex`) con persistencia dual en memoria (`map`) y respaldo a archivo JSON (`data/vehicles.json`, stdlib).
   - Métodos: `Create`, `FindByID`, `FindApproved`, `FindPending`, `UpdateStatus`, `Delete`.
 - **US-07 [Dev 3] HU-VEN-01 - Crear Publicación de Vehículo** `[ClickUp #86e3mc70g]`
   - `POST /api/seller/vehicles` (protegido con `AuthMiddleware` + `RequireRole('vendedor')`).

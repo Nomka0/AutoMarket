@@ -13,17 +13,18 @@ cmd/server/main.go          ──> Composición, arranque e inyección de depen
 docs/                       ──> Documentación técnica, enunciado, plan y ClickUp
 internal/
   ├── domain/               ──> Entidades puras y reglas de negocio
-  ├── store/                ──> Repositorios en memoria thread-safe (sync.RWMutex)
+  ├── store/                ──> Repositorios concurrentes con persistencia JSON stdlib (sync.RWMutex)
   ├── auth/                 ──> Módulo criptográfico stdlib, sesiones y middlewares AAA
   └── handlers/             ──> Adaptadores HTTP Gin, DTOs y respuestas
 ```
 
 * **`internal/domain`**:
-  * `User`: Define los roles inmutables (`RoleSeller = "vendedor"`, `RoleAdmin = "admin"`). Oculta hashes y salts en serializaciones JSON (`json:"-"`).
+  * `User`: Define los roles inmutables (`RoleSeller = "vendedor"`, `RoleAdmin = "admin"`). Contiene tags JSON (`password_hash`, `salt`) para serialización persistente en archivo local. La protección contra fuga de credenciales hacia clientes HTTP se delega a la capa de Handlers mediante DTOs/proyecciones explícitas.
   * `VehiclePublication`: Define el ciclo de vida del vehículo (`PENDING`, `APPROVED`, `SOLD`).
 * **`internal/store`**:
-  * Repositorios desacoplados de la capa web (`UserStore` y `VehicleStore`).
-  * Protegidos concurrentemente con `sync.RWMutex` para soportar múltiples lectores y exclusión mutua en escrituras.
+  * Repositorios desacoplados de la capa web (`UserStore`, `VehicleStore`, `TokenStore`).
+  * Persistencia dual: estado en memoria (`map`) para lectura ultra-rápida respaldado en archivos JSON locales (`data/users.json`, `data/vehicles.json`) mediante la biblioteca estándar (`encoding/json`, `os`).
+  * Protegidos concurrentemente con `sync.RWMutex` para soportar múltiples lectores simultáneos y exclusión mutua durante escrituras y sincronización a disco.
 * **`internal/auth`**:
   * Criptografía estándar sin librerías externas (sin JWT ni bcrypt).
 * **`internal/handlers`**:
@@ -42,7 +43,11 @@ internal/
 * **Manejo de sesiones (`internal/auth/token_store.go`)**:
   * Genera **tokens opacos** de 32 bytes aleatorios (64 caracteres hexadecimales) con `crypto/rand`.
   * Almacenados en `TokenStore` en memoria con TTL de 24 horas (`sessionTTL`).
+  * **Almacenamiento volátil intencional (seguridad en reposo):** Los tokens NO se persisten en disco para reducir la superficie de ataque (si alguien lee `data/` no obtiene sesiones activas) y asegurar que reiniciar el servidor invalide las sesiones huérfanas.
   * `AuthMiddleware`: Extrae el token del header `Authorization: Bearer <token>`. Retorna `401 Unauthorized` si no existe o expiró. Si es válido, inyecta la sesión en Gin (`c.Set("currentUser", session)`).
+* **Inicialización de Administrador (`SetupAdmin`)**:
+  * Permite crear el primer administrador si no existe en el sistema.
+  * No requiere campo de contacto obligatorio (`contact_info`), dado que el administrador moderará el sistema y no publicará vehículos en el catálogo público.
 
 ### A2: Authorization (Autorización)
 * **Control de Acceso Basado en Roles (RBAC)**:
@@ -123,21 +128,51 @@ stateDiagram-v2
 
 ---
 
-## 4. Concurrencia y Thread Safety
+## 4. Persistencia en Archivos JSON y Seguridad de Datos (Desmenuzado Técnico)
 
-* **Goroutines de Gin**: Cada solicitud HTTP se procesa en una goroutine independiente.
-* **`sync.RWMutex`**:
-  * Lecturas concurrentes con `RLock()` / `RUnlock()` para alto rendimiento en catálogo y búsquedas.
-  * Escrituras exclusivas con `Lock()` / `Unlock()` para altas, modificaciones de estado y eliminaciones.
-* **Borrado atómico**:
-  * Comprobación y eliminación bajo el mismo lock para evitar race conditions ante múltiples peticiones simultáneas.
+### A. Estrategia Híbrida: Memoria + Vuelco a Archivos JSON (Stdlib pura)
+* **Por qué no usar bases de datos externas (ORM, SQLite, PostgreSQL):**
+  * Para cumplir la restricción del taller (solo Gin permitido, cero drivers externos), se implementó un motor de persistencia plano basado en `encoding/json`, `os` y `path/filepath`.
+* **Mecanismo de Ciclo de Vida:**
+  * **Carga inicial (`load()`):** Al iniciar el servidor (`NewUserStore`, `NewVehicleStore`), lee `data/users.json` y `data/vehicles.json`. Si el archivo no existe aún (`os.IsNotExist`), arranca el mapa vacío en memoria sin abortar la ejecución.
+  * **Guardado tras mutación (`save()`):** En cada operación de escritura (`Create`, `UpdateStatus`, `Delete`, `CreateAdmin`), serializa el mapa completo con `json.MarshalIndent` y lo escribe en disco con permisos `0644`. Crea la carpeta `data/` (`0755`) si no existe.
+  * **Modo en memoria (`STORAGE_MODE=memory`):** Si la variable de entorno está activa o la ruta está vacía, no toca el disco. Permite ejecutar pruebas unitarias aisladas sin efectos secundarios en el sistema de archivos.
+
+### B. Ciberseguridad: ¿Por qué serializar `password_hash` y `salt` no fuga información?
+* **El dilema de persistencia:**
+  * Si la entidad `domain.User` ocultara los campos con `json:"-"`, `json.Marshal` no los guardaría en `users.json`, perdiendo los hashes y salts al apagar el servidor (los usuarios no podrían iniciar sesión tras reiniciar).
+  * Por ello, `domain.User` declara `json:"password_hash"` y `json:"salt"`.
+* **Concepto técnico desmenuzado: Separación de Modelo de Dominio vs DTOs de Presentación:**
+  * `domain.User` representa cómo se estructuran los datos internamente y en almacenamiento duradero.
+  * En la capa web/API (`internal/handlers/auth_handler.go`), el servidor **nunca** devuelve el objeto `User` directamente al cliente HTTP.
+  * Se utilizan **proyecciones/DTOs explícitos** (ej. `gin.H{"id": user.ID, "username": user.Username}`).
+  * **Resultado de seguridad:** El archivo en disco retiene los datos criptográficos necesarios para validar accesos, pero ningún atacante o cliente HTTP puede extraer el hash o el salt mediante peticiones a la API.
+
+### C. Almacenamiento Efímero de Sesiones vs Datos Persistentes
+* **Datos persistentes (`data/users.json`, `data/vehicles.json`):**
+  * Representan el estado de negocio durable (cuentas registradas, publicaciones, estados de moderación).
+* **Sesiones volátiles (`TokenStore` en RAM):**
+  * Los tokens Bearer se guardan en un mapa en memoria con TTL de 24 horas.
+  * **Principio de mínima exposición:** Si el servidor se apaga o sufre un compromiso del sistema de archivos local, no hay tokens de sesión activos almacenados en disco que puedan ser sustraídos para *session hijacking*.
+  * Toda revocación por eliminación de usuario (`DELETE /api/admin/users/:id`) purga la sesión de memoria en tiempo real.
 
 ---
 
-## 5. Pruebas Automatizadas (E2E y Unitarias)
+## 5. Concurrencia, Bloqueos y Thread Safety en I/O
+
+* **Goroutines concurrentes de Gin:** Gin despacha cada petición entrante en una goroutine independiente de Go. Múltiples usuarios pueden consultar el catálogo y publicar autos a la misma milésima de segundo.
+* **`sync.RWMutex` (Lector-Escritor):**
+  * **Lectura compartida (`RLock()` / `RUnlock()`):** Decenas de clientes consultando `GET /api/catalog` leen concurrentemente del mapa en RAM a máxima velocidad sin competir entre sí ni hacer lecturas lentas a disco.
+  * **Escritura exclusiva (`Lock()` / `Unlock()`):** Cuando se crea o modifica un usuario o vehículo, se adquiere el bloqueo exclusivo. Mientras se actualiza la memoria y se ejecuta `save()` a disco, ninguna goroutine puede leer un estado a medio escribir ni escribir en simultáneo (*race condition* evitada).
+* **Integridad atómica en eliminaciones:**
+  * Tanto la verificación de existencia como el borrado y la persistencia a disco se ejecutan bajo el mismo candado `Lock()`.
+
+---
+
+## 6. Pruebas Automatizadas (E2E y Unitarias)
 
 * **Script E2E (`test_flows.sh`)**:
   * Automatiza los flujos de las 3 HUs y el marco AAA mediante cURL y aserciones HTTP (200, 201, 400, 401, 403, 404, 409).
   * Valida la generación e integridad de `audit.log`.
 * **Tests unitarios (`go test ./...`)**:
-  * Cobertura de paquetes `auth`, `domain`, `handlers` y `store`.
+  * Cobertura de paquetes `auth`, `domain`, `handlers` y `store` (incluyendo tests de persistencia y recarga de archivos JSON).
