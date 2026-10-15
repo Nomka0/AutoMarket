@@ -56,9 +56,9 @@ El documento debe incluir exactamente **dos (2) diagramas**:
   * `cmd/server/main.go` (Punto de entrada y cableado de dependencias).
   * `internal/handlers` (Controladores Gin: `AuthHandler`, `VehicleHandler`, `AdminHandler`, `CatalogHandler`).
   * `internal/auth` (Seguridad: `crypto.go`, `TokenStore`, `AuthMiddleware`, `RequireRole`, `AuditLogMiddleware`).
-  * `internal/store` (Almacenes en memoria thread-safe: `UserStore`, `VehicleStore`).
+  * `internal/store` (Almacenes thread-safe con persistencia JSON stdlib: `UserStore`, `VehicleStore`, `TokenStore`).
   * `internal/domain` (Entidades puras: `User`, `VehiclePublication`).
-  * Salida a archivo: `audit.log`.
+  * Salidas a archivo: `audit.log` (Accounting) y `data/*.json` (Persistencia duradera).
 
 #### B. Diagrama de Comportamiento (Diagrama de Secuencia AAA)
 * **Objetivo**: Ilustrar la traza de una petición protegida a través del pipeline AAA.

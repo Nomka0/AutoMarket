@@ -20,7 +20,7 @@ flowchart TD
     subgraph Core["Capa Aplicación y Persistencia (internal/)"]
         direction LR
         H["Handlers HTTP<br/>(Auth, Vehicle, Admin, Catalog)"]
-        S["Stores (sync.RWMutex)<br/>UserStore | VehicleStore | TokenStore"]
+        S["Stores (sync.RWMutex + JSON)<br/>UserStore | VehicleStore | TokenStore"]
         D["Domain Models<br/>User | VehiclePublication"]
         H --> S --> D
     end
@@ -28,6 +28,7 @@ flowchart TD
     Gin --> Audit
     RBAC --> H
     Audit -.-> Log[("audit.log (JSONL)")]
+    S -.-> Files[("Persistencia JSON (stdlib)<br/>data/users.json<br/>data/vehicles.json")]
     H -.-> Crypto["crypto.go (stdlib)"]
 ```
 
@@ -55,6 +56,7 @@ sequenceDiagram
     M->>M: Valida rol == 'vendedor' (200 / 403)
     M->>H: CreatePublication(c) con currentUser
     H->>S: Create(pub) con Lock() [status: PENDING]
+    Note over S: save() vuelca a data/vehicles.json
     S-->>H: OK
     H-->>M: HTTP 201 Created (JSON)
     M-->>A: Retorno tras c.Next()
