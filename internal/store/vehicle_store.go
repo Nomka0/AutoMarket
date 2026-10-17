@@ -72,6 +72,16 @@ func (s *VehicleStore) FindByID(id string) (domain.VehiclePublication, bool) {
 	return pub, ok
 }
 
+func (s *VehicleStore) FindAll() []domain.VehiclePublication {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	res := make([]domain.VehiclePublication, 0, len(s.pubs))
+	for _, pub := range s.pubs {
+		res = append(res, pub)
+	}
+	return res
+}
+
 func (s *VehicleStore) FindApproved() []domain.VehiclePublication {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

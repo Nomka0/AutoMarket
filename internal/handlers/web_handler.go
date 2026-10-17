@@ -382,12 +382,15 @@ func (h *WebHandler) MarkSoldSubmit(c *gin.Context) {
 func (h *WebHandler) AdminDashboard(c *gin.Context) {
 	session, _ := auth.GetCurrentUser(c)
 	pending := h.vehicleStore.FindPending()
+	allVehicles := h.vehicleStore.FindAll()
 	allUsers := h.userStore.FindAll()
 
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"Title":           "Panel de Moderación",
 		"PendingVehicles": pending,
 		"PendingCount":    len(pending),
+		"AllVehicles":     allVehicles,
+		"VehicleCount":    len(allVehicles),
 		"Users":           allUsers,
 		"UserCount":       len(allUsers),
 		"User":            session,
