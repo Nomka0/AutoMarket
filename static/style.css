@@ -280,6 +280,65 @@ th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(-
 th { background: var(--bg-canvas); color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
 tr:hover { background: var(--bg-surface-hover); }
 
+/* Imágenes de Vehículos */
+.card-img-wrapper {
+  width: 100%;
+  height: 190px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 0.85rem;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-subtle);
+}
+.card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.2s ease;
+}
+.card:hover .card-img {
+  transform: scale(1.03);
+}
+.card-img-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+}
+.detail-img-wrapper {
+  width: 100%;
+  max-height: 420px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-subtle);
+}
+.detail-img {
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  display: block;
+}
+.table-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--border-subtle);
+}
+.table-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-canvas);
+  font-size: 1.25rem;
+}
+
 /* Footer */
 footer {
   text-align: center;

@@ -39,6 +39,7 @@ func setupTestRouter() (*gin.Engine, *store.UserStore, *store.VehicleStore, *aut
 	sellerWeb.GET("", webHandler.SellerDashboard)
 	sellerWeb.POST("/vehicles", webHandler.CreateVehicleSubmit)
 	sellerWeb.POST("/vehicles/:id/sold", webHandler.MarkSoldSubmit)
+	sellerWeb.POST("/contact", webHandler.UpdateContactSubmit)
 
 	adminWeb := r.Group("/admin").Use(auth.WebAuthMiddleware(tokenStore), auth.WebRequireRole(domain.RoleAdmin))
 	adminWeb.GET("", webHandler.AdminDashboard)
@@ -231,3 +232,96 @@ func TestWebHandler_AdminFlow(t *testing.T) {
 		t.Fatalf("expected status APPROVED, got %s", pub.Status)
 	}
 }
+
+func TestWebHandler_CatalogDetailContactAndOneClick(t *testing.T) {
+	r, _, vehicleStore, _ := setupTestRouter()
+
+	vehicleStore.Create(domain.VehiclePublication{
+		ID:            "veh-contact-1",
+		Title:         "Mazda 3 Grand Touring",
+		Price:         55000000,
+		Year:          2022,
+		Status:        domain.StatusApproved,
+		SellerContact: "juan@gmail.com / 3001234567",
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/catalog/veh-contact-1", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	body := w.Body.String()
+	requiredTexts := []string{
+		"Información de Contacto del Vendedor:",
+		"Correo:",
+		"juan@gmail.com",
+		"href=\"mailto:juan@gmail.com?subject=",
+		"Número de telefono:",
+		"&#43;573001234567",
+		"href=\"tel:&#43;573001234567\"",
+		"https://wa.me/573001234567?text=",
+	}
+
+	for _, text := range requiredTexts {
+		if !strings.Contains(body, text) {
+			t.Errorf("catalog detail body missing required text %q", text)
+		}
+	}
+}
+
+func TestWebHandler_SellerUpdateContact(t *testing.T) {
+	r, userStore, vehicleStore, tokenStore := setupTestRouter()
+
+	salt := auth.GenerateSalt()
+	_ = userStore.Create(domain.User{
+		ID:           "seller-update-1",
+		Username:     "seller1",
+		PasswordHash: auth.HashPassword("secret", salt),
+		Salt:         salt,
+		Role:         domain.RoleSeller,
+		ContactInfo:  "juan@gmail.com",
+	})
+
+	vehicleStore.Create(domain.VehiclePublication{
+		ID:            "veh-seller-1",
+		SellerID:      "seller-update-1",
+		Title:         "Toyota Corolla",
+		Price:         40000000,
+		Year:          2021,
+		Status:        domain.StatusApproved,
+		SellerContact: "juan@gmail.com",
+	})
+
+	token := tokenStore.CreateToken("seller-update-1", domain.RoleSeller)
+
+	form := url.Values{}
+	form.Set("email", "juan@gmail.com")
+	form.Set("phone", "3209876543")
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/seller/contact", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "token", Value: token})
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 redirect, got %d", w.Code)
+	}
+
+	u, _ := userStore.FindByID("seller-update-1")
+	if u.GetPhone() != "3209876543" {
+		t.Errorf("expected phone 3209876543, got %q", u.GetPhone())
+	}
+	if u.GetEmail() != "juan@gmail.com" {
+		t.Errorf("expected email juan@gmail.com, got %q", u.GetEmail())
+	}
+
+	v, _ := vehicleStore.FindByID("veh-seller-1")
+	if v.ContactPhone() != "3209876543" {
+		t.Errorf("expected vehicle to have updated phone, got %q", v.ContactPhone())
+	}
+}
+

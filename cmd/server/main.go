@@ -62,7 +62,9 @@ func main() {
 	r := gin.Default()
 	r.Use(auth.AuditLogMiddleware(auditLogger))
 
+	_ = os.MkdirAll("uploads", 0755)
 	r.Static("/static", "./static")
+	r.Static("/uploads", "./uploads")
 	r.LoadHTMLGlob("templates/*")
 
 	r.GET("/ping", func(c *gin.Context) {
@@ -94,7 +96,10 @@ func main() {
 	sellerGroup := r.Group("/api/seller")
 	sellerGroup.Use(auth.AuthMiddleware(tokenStore), auth.RequireRole(domain.RoleSeller))
 	sellerGroup.POST("/vehicles", vehicleHandler.CreatePublication)
+	sellerGroup.POST("/upload", vehicleHandler.UploadImage)
 	sellerGroup.PATCH("/vehicles/:id/sold", vehicleHandler.MarkAsSold)
+	sellerGroup.POST("/contact", vehicleHandler.UpdateContact)
+	sellerGroup.PUT("/contact", vehicleHandler.UpdateContact)
 
 	adminHandler := handlers.NewAdminHandler(vehicleStore, userStore, tokenStore)
 	adminGroup := r.Group("/api/admin")
@@ -124,6 +129,7 @@ func main() {
 	sellerWeb.GET("", webHandler.SellerDashboard)
 	sellerWeb.POST("/vehicles", webHandler.CreateVehicleSubmit)
 	sellerWeb.POST("/vehicles/:id/sold", webHandler.MarkSoldSubmit)
+	sellerWeb.POST("/contact", webHandler.UpdateContactSubmit)
 
 	// Vistas protegidas Administrador
 	adminWeb := r.Group("/admin").Use(auth.WebAuthMiddleware(tokenStore), auth.WebRequireRole(domain.RoleAdmin))

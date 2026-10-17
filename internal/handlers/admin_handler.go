@@ -51,11 +51,16 @@ func (h *AdminHandler) ApprovePublication(c *gin.Context) {
 }
 
 func (h *AdminHandler) DeletePublication(c *gin.Context) {
+	id := c.Param("id")
+	pub, found := h.vehicleStore.FindByID(id)
 	// Delete comprueba y borra bajo el mismo Lock: atomico ante borrados concurrentes
-	deleted := h.vehicleStore.Delete(c.Param("id"))
+	deleted := h.vehicleStore.Delete(id)
 	if !deleted {
 		c.JSON(http.StatusNotFound, gin.H{"error": "publicación no encontrada"})
 		return
+	}
+	if found && pub.ImageURL != "" {
+		DeleteUploadedImage(pub.ImageURL, "uploads")
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "publicación eliminada"})
 }

@@ -132,3 +132,17 @@ func (s *VehicleStore) Delete(id string) bool {
 	return true
 }
 
+func (s *VehicleStore) UpdateSellerContact(sellerID, sellerContact, sellerEmail, sellerPhone string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for id, pub := range s.pubs {
+		if pub.SellerID == sellerID {
+			pub.SellerContact = sellerContact
+			pub.SellerEmail = sellerEmail
+			pub.SellerPhone = sellerPhone
+			s.pubs[id] = pub
+		}
+	}
+	_ = s.save()
+}
+

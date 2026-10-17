@@ -95,6 +95,18 @@ func (s *UserStore) FindByID(id string) (domain.User, bool) {
 	return u, ok
 }
 
+func (s *UserStore) Update(u domain.User) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, ok := s.users[u.ID]; !ok {
+		return false
+	}
+	s.users[u.ID] = u
+	_ = s.save()
+	return true
+}
+
 func (s *UserStore) Delete(id string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()

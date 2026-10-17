@@ -30,28 +30,59 @@
     {{if .Msg}}<div class="alert alert-success">{{.Msg}}</div>{{end}}
 
     <div style="display: grid; grid-template-columns: 360px 1fr; gap: 1.5rem; align-items: start;">
-      <!-- Formulario de Publicación -->
-      <div class="panel-section">
-        <h3>Publicar Vehículo</h3>
-        <form action="/seller/vehicles" method="POST">
-          <div class="form-group">
-            <label for="title">Título de la Publicación</label>
-            <input type="text" id="title" name="title" placeholder="ej. Mazda 3 Grand Touring" required>
-          </div>
-          <div class="form-group">
-            <label for="price">Precio (COP)</label>
-            <input type="number" id="price" name="price" placeholder="ej. 52000000" step="any" min="1" required>
-          </div>
-          <div class="form-group">
-            <label for="year">Año del Modelo</label>
-            <input type="number" id="year" name="year" placeholder="ej. 2021" min="1950" max="2027" required>
-          </div>
-          <div class="form-group">
-            <label for="description">Descripción Detallada</label>
-            <textarea id="description" name="description" rows="4" placeholder="Estado del vehículo, kilometraje, etc." required></textarea>
-          </div>
-          <button type="submit" class="btn btn-primary">Enviar a Moderación</button>
-        </form>
+      <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <!-- Datos de Contacto del Vendedor -->
+        <div class="panel-section">
+          <h3>Mi Información de Contacto</h3>
+          <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+            Esta información se muestra en tus publicaciones para que los compradores te contacten por correo o móvil con un clic.
+          </p>
+          <form action="/seller/contact" method="POST">
+            <div class="form-group">
+              <label for="contact_email">Correo Electrónico</label>
+              <input type="email" id="contact_email" name="email" value="{{.SellerEmail}}" placeholder="ej. juan@gmail.com" required>
+            </div>
+            <div class="form-group">
+              <label for="contact_phone">Número de Teléfono / Móvil</label>
+              <input type="tel" id="contact_phone" name="phone" value="{{.SellerPhone}}" placeholder="ej. 3001234567" required>
+            </div>
+            <button type="submit" class="btn btn-secondary" style="width: 100%;">Guardar Datos de Contacto</button>
+          </form>
+        </div>
+
+        <!-- Formulario de Publicación -->
+        <div class="panel-section">
+          <h3>Publicar Vehículo</h3>
+          <form action="/seller/vehicles" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+              <label for="title">Título de la Publicación</label>
+              <input type="text" id="title" name="title" placeholder="ej. Mazda 3 Grand Touring" required>
+            </div>
+            <div class="form-group">
+              <label for="price">Precio (COP)</label>
+              <input type="number" id="price" name="price" placeholder="ej. 52000000" step="any" min="1" required>
+            </div>
+            <div class="form-group">
+              <label for="year">Año del Modelo</label>
+              <input type="number" id="year" name="year" placeholder="ej. 2021" min="1950" max="2027" required>
+            </div>
+            <div class="form-group">
+              <label for="pub_phone">Teléfono de Contacto (opcional)</label>
+              <input type="tel" id="pub_phone" name="phone" value="{{.SellerPhone}}" placeholder="ej. 3001234567">
+              <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem; font-size: 0.8rem;">Por defecto usa el teléfono de tu perfil.</small>
+            </div>
+            <div class="form-group">
+              <label for="photo">Fotografía del Vehículo (opcional)</label>
+              <input type="file" id="photo" name="photo" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+              <small style="color: var(--text-secondary); display: block; margin-top: 0.35rem; font-size: 0.8rem;">Formatos: JPG, PNG, WEBP (máx. 5MB)</small>
+            </div>
+            <div class="form-group">
+              <label for="description">Descripción Detallada</label>
+              <textarea id="description" name="description" rows="4" placeholder="Estado del vehículo, kilometraje, etc." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Enviar a Moderación</button>
+          </form>
+        </div>
       </div>
 
       <!-- Mis Publicaciones -->
@@ -79,8 +110,17 @@
               {{range .Vehicles}}
                 <tr>
                   <td>
-                    <strong>{{.Title}}</strong><br>
-                    <small style="color: var(--text-secondary);">{{.Description}}</small>
+                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                      {{if .ImageURL}}
+                        <img src="{{.ImageURL}}" alt="{{.Title}}" class="table-thumb">
+                      {{else}}
+                        <div class="table-thumb table-thumb-placeholder">🚗</div>
+                      {{end}}
+                      <div>
+                        <strong>{{.Title}}</strong><br>
+                        <small style="color: var(--text-secondary);">{{.Description}}</small>
+                      </div>
+                    </div>
                   </td>
                   <td>{{.Year}}</td>
                   <td>${{printf "%.2f" .Price}}</td>

@@ -37,15 +37,45 @@
       <a href="/catalog" style="color: var(--accent-primary); text-decoration: none; font-size: 0.9rem;">&larr; Volver al catálogo</a>
       
       <div class="card" style="margin-top: 1rem; padding: 2rem;">
+        {{if .Vehicle.ImageURL}}
+          <div class="detail-img-wrapper">
+            <img src="{{.Vehicle.ImageURL}}" alt="{{.Vehicle.Title}}" class="detail-img">
+          </div>
+        {{end}}
         <h1 style="color: var(--text-primary);">{{.Vehicle.Title}}</h1>
         <div class="price" style="font-size: 1.75rem; margin: 0.5rem 0;">${{printf "%.2f" .Vehicle.Price}}</div>
         <div class="meta">Año {{.Vehicle.Year}} &bull; Publicado: {{.Vehicle.CreatedAt.Format "02/01/2006"}}</div>
         
         <p class="desc" style="font-size: 1rem; margin: 1.5rem 0; line-height: 1.6;">{{.Vehicle.Description}}</p>
         
-        <div class="contact" style="padding: 1rem; font-size: 0.95rem;">
-          <strong style="color: var(--text-primary);">Información de Contacto del Vendedor:</strong><br>
-          <span style="color: var(--accent-primary);">{{.Vehicle.SellerContact}}</span>
+        <div class="contact" style="padding: 1.25rem; font-size: 0.95rem;">
+          <strong style="color: var(--text-primary); display: block; margin-bottom: 0.5rem;">Información de Contacto del Vendedor:</strong>
+          <div style="margin: 0.35rem 0;">
+            <strong>Correo:</strong>
+            {{if .Vehicle.ContactEmail}}
+              <a href="{{.Vehicle.MailtoURL}}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-primary); text-decoration: underline;" title="Enviar correo con un clic">{{.Vehicle.ContactEmail}}</a>
+            {{else}}
+              <span style="color: var(--text-secondary);">No especificado</span>
+            {{end}}
+          </div>
+          <div style="margin: 0.35rem 0;">
+            <strong>Número de telefono:</strong>
+            {{if .Vehicle.ContactPhone}}
+              <a href="tel:{{.Vehicle.CleanPhone}}" style="color: var(--accent-primary); text-decoration: underline;" title="Llamar con un clic">{{.Vehicle.CleanPhone}}</a>
+            {{else}}
+              <span style="color: var(--text-secondary);">No especificado</span>
+            {{end}}
+          </div>
+          {{if .Vehicle.ContactPhone}}
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
+              <a href="tel:{{.Vehicle.CleanPhone}}" class="btn btn-sm btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem;">
+                📞 Llamar Móvil
+              </a>
+              <a href="{{.Vehicle.WhatsAppURL}}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem;">
+                💬 WhatsApp
+              </a>
+            </div>
+          {{end}}
         </div>
       </div>
     </div>

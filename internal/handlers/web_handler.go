@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -36,6 +37,16 @@ func (h *WebHandler) Index(c *gin.Context) {
 func (h *WebHandler) Catalog(c *gin.Context) {
 	user, _ := auth.GetCurrentUser(c)
 	vehicles := h.vehicleStore.FindApproved()
+	for i := range vehicles {
+		if seller, exists := h.userStore.FindByID(vehicles[i].SellerID); exists {
+			if vehicles[i].SellerEmail == "" {
+				vehicles[i].SellerEmail = seller.GetEmail()
+			}
+			if vehicles[i].SellerPhone == "" {
+				vehicles[i].SellerPhone = seller.GetPhone()
+			}
+		}
+	}
 	c.HTML(http.StatusOK, "catalog.html", gin.H{
 		"Title":    "Catálogo Público",
 		"Vehicles": vehicles,
@@ -57,6 +68,15 @@ func (h *WebHandler) CatalogDetail(c *gin.Context) {
 			"User":  user,
 		})
 		return
+	}
+
+	if seller, exists := h.userStore.FindByID(pub.SellerID); exists {
+		if pub.SellerEmail == "" {
+			pub.SellerEmail = seller.GetEmail()
+		}
+		if pub.SellerPhone == "" {
+			pub.SellerPhone = seller.GetPhone()
+		}
 	}
 
 	c.HTML(http.StatusOK, "catalog_detail.html", gin.H{
@@ -124,7 +144,16 @@ func (h *WebHandler) RegisterPage(c *gin.Context) {
 func (h *WebHandler) RegisterSubmit(c *gin.Context) {
 	username := strings.TrimSpace(c.PostForm("username"))
 	password := c.PostForm("password")
+	email := strings.TrimSpace(c.PostForm("email"))
+	phone := strings.TrimSpace(c.PostForm("phone"))
 	contactInfo := strings.TrimSpace(c.PostForm("contact_info"))
+
+	if email == "" && contactInfo != "" {
+		email, phone = domain.ParseContact(contactInfo)
+	}
+	if contactInfo == "" {
+		contactInfo = domain.FormatContact(email, phone)
+	}
 
 	if username == "" || password == "" || contactInfo == "" {
 		c.Redirect(http.StatusSeeOther, "/register?error="+url.QueryEscape("Todos los campos son obligatorios"))
@@ -139,6 +168,8 @@ func (h *WebHandler) RegisterSubmit(c *gin.Context) {
 		Salt:         salt,
 		Role:         domain.RoleSeller,
 		ContactInfo:  contactInfo,
+		Email:        email,
+		Phone:        phone,
 	}
 
 	if err := h.userStore.Create(user); err != nil {
@@ -190,6 +221,7 @@ func (h *WebHandler) SetupAdminSubmit(c *gin.Context) {
 func (h *WebHandler) SellerDashboard(c *gin.Context) {
 	session, _ := auth.GetCurrentUser(c)
 	myVehicles := h.vehicleStore.FindBySellerID(session.UserID)
+	sellerUser, _ := h.userStore.FindByID(session.UserID)
 
 	var pendingCount, approvedCount, soldCount int
 	for _, v := range myVehicles {
@@ -208,11 +240,40 @@ func (h *WebHandler) SellerDashboard(c *gin.Context) {
 		"Vehicles":      myVehicles,
 		"PendingCount":  pendingCount,
 		"ApprovedCount": approvedCount,
-		"SoldCount":      soldCount,
+		"SoldCount":     soldCount,
 		"User":          session,
+		"SellerEmail":   sellerUser.GetEmail(),
+		"SellerPhone":   sellerUser.GetPhone(),
 		"Error":         c.Query("error"),
 		"Msg":           c.Query("msg"),
 	})
+}
+
+func (h *WebHandler) UpdateContactSubmit(c *gin.Context) {
+	session, _ := auth.GetCurrentUser(c)
+	email := strings.TrimSpace(c.PostForm("email"))
+	phone := strings.TrimSpace(c.PostForm("phone"))
+
+	if email == "" && phone == "" {
+		c.Redirect(http.StatusSeeOther, "/seller?error="+url.QueryEscape("Debes ingresar correo o teléfono"))
+		return
+	}
+
+	user, ok := h.userStore.FindByID(session.UserID)
+	if !ok {
+		c.Redirect(http.StatusSeeOther, "/login?error="+url.QueryEscape("Usuario no encontrado"))
+		return
+	}
+
+	contactInfo := domain.FormatContact(email, phone)
+	user.Email = email
+	user.Phone = phone
+	user.ContactInfo = contactInfo
+
+	h.userStore.Update(user)
+	h.vehicleStore.UpdateSellerContact(user.ID, contactInfo, email, phone)
+
+	c.Redirect(http.StatusSeeOther, "/seller?msg="+url.QueryEscape("Información de contacto actualizada exitosamente."))
 }
 
 func (h *WebHandler) CreateVehicleSubmit(c *gin.Context) {
@@ -221,6 +282,7 @@ func (h *WebHandler) CreateVehicleSubmit(c *gin.Context) {
 	description := strings.TrimSpace(c.PostForm("description"))
 	priceStr := strings.TrimSpace(c.PostForm("price"))
 	yearStr := strings.TrimSpace(c.PostForm("year"))
+	phone := strings.TrimSpace(c.PostForm("phone"))
 
 	if title == "" || description == "" || priceStr == "" || yearStr == "" {
 		c.Redirect(http.StatusSeeOther, "/seller?error="+url.QueryEscape("Todos los campos del vehículo son obligatorios"))
@@ -241,18 +303,50 @@ func (h *WebHandler) CreateVehicleSubmit(c *gin.Context) {
 
 	user, ok := h.userStore.FindByID(session.UserID)
 	contactInfo := "No especificado"
-	if ok && user.ContactInfo != "" {
-		contactInfo = user.ContactInfo
+	userEmail := ""
+	userPhone := ""
+	if ok {
+		userEmail = user.GetEmail()
+		userPhone = user.GetPhone()
+		if phone != "" {
+			userPhone = phone
+			if user.Phone == "" {
+				user.Phone = phone
+				user.ContactInfo = domain.FormatContact(userEmail, userPhone)
+				h.userStore.Update(user)
+			}
+		}
+		contactInfo = domain.FormatContact(userEmail, userPhone)
+		if contactInfo == "" && user.ContactInfo != "" {
+			contactInfo = user.ContactInfo
+		}
+	}
+
+	var imageURL string
+	file, err := c.FormFile("photo")
+	if err == nil && file != nil {
+		savedURL, saveErr := SaveUploadedImage(file, "uploads")
+		if saveErr != nil {
+			c.Redirect(http.StatusSeeOther, "/seller?error="+url.QueryEscape(saveErr.Error()))
+			return
+		}
+		imageURL = savedURL
+	} else if err != nil && err != http.ErrMissingFile && !errors.Is(err, http.ErrNotMultipart) {
+		c.Redirect(http.StatusSeeOther, "/seller?error="+url.QueryEscape("Error al recibir el archivo de imagen"))
+		return
 	}
 
 	pub := domain.VehiclePublication{
 		ID:            auth.GenerateToken(),
 		SellerID:      session.UserID,
 		SellerContact: contactInfo,
+		SellerEmail:   userEmail,
+		SellerPhone:   userPhone,
 		Title:         title,
 		Description:   description,
 		Price:         price,
 		Year:          year,
+		ImageURL:      imageURL,
 		Status:        domain.StatusPending,
 		CreatedAt:     time.Now().UTC(),
 	}
@@ -316,9 +410,13 @@ func (h *WebHandler) ApprovePublicationSubmit(c *gin.Context) {
 
 func (h *WebHandler) DeletePublicationSubmit(c *gin.Context) {
 	id := c.Param("id")
+	pub, found := h.vehicleStore.FindByID(id)
 	if !h.vehicleStore.Delete(id) {
 		c.Redirect(http.StatusSeeOther, "/admin?error="+url.QueryEscape("Publicación no encontrada"))
 		return
+	}
+	if found && pub.ImageURL != "" {
+		DeleteUploadedImage(pub.ImageURL, "uploads")
 	}
 	c.Redirect(http.StatusSeeOther, "/admin?msg="+url.QueryEscape("Publicación eliminada correctamente."))
 }

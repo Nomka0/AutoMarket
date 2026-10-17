@@ -50,6 +50,15 @@
         {{range .Vehicles}}
           <div class="card">
             <div>
+              {{if .ImageURL}}
+                <div class="card-img-wrapper">
+                  <img src="{{.ImageURL}}" alt="{{.Title}}" class="card-img" loading="lazy">
+                </div>
+              {{else}}
+                <div class="card-img-wrapper card-img-placeholder">
+                  <span>🚗 Sin fotografía</span>
+                </div>
+              {{end}}
               <h2>{{.Title}}</h2>
               <div class="price">${{printf "%.2f" .Price}}</div>
               <div class="meta">Año {{.Year}} &bull; Estado: <span class="badge badge-approved">Disponible</span></div>
@@ -57,8 +66,23 @@
             </div>
             <div>
               <div class="contact" style="margin-bottom: 0.75rem;">
-                <strong>Contacto del Vendedor:</strong><br>
-                {{.SellerContact}}
+                <strong style="color: var(--text-primary); display: block; margin-bottom: 0.25rem;">Contacto del Vendedor:</strong>
+                <div>
+                  <strong>Correo:</strong>
+                  {{if .ContactEmail}}
+                    <a href="{{.MailtoURL}}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-primary); text-decoration: underline;" title="Enviar correo con un clic">{{.ContactEmail}}</a>
+                  {{else}}
+                    <span style="color: var(--text-secondary);">No especificado</span>
+                  {{end}}
+                </div>
+                <div style="margin-top: 0.2rem;">
+                  <strong>Teléfono:</strong>
+                  {{if .ContactPhone}}
+                    <a href="tel:{{.CleanPhone}}" style="color: var(--accent-primary); text-decoration: underline;" title="Llamar con un clic">{{.CleanPhone}}</a>
+                  {{else}}
+                    <span style="color: var(--text-secondary);">No especificado</span>
+                  {{end}}
+                </div>
               </div>
               <a href="/catalog/{{.ID}}" class="btn btn-sm btn-secondary" style="width: 100%;">Ver Ficha Completa &rarr;</a>
             </div>

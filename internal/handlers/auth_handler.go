@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -13,7 +14,9 @@ import (
 type RegisterRequest struct {
 	Username    string `json:"username" binding:"required"`
 	Password    string `json:"password" binding:"required"`
-	ContactInfo string `json:"contact_info" binding:"required"`
+	ContactInfo string `json:"contact_info"`
+	Email       string `json:"email"`
+	Phone       string `json:"phone"`
 }
 
 type LoginRequest struct {
@@ -55,6 +58,21 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
+	email := strings.TrimSpace(req.Email)
+	phone := strings.TrimSpace(req.Phone)
+	contactInfo := strings.TrimSpace(req.ContactInfo)
+	if email == "" && contactInfo != "" {
+		email, phone = domain.ParseContact(contactInfo)
+	}
+	if contactInfo == "" {
+		contactInfo = domain.FormatContact(email, phone)
+	}
+
+	if contactInfo == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username, password and contact_info are required"})
+		return
+	}
+
 	salt := auth.GenerateSalt()
 	user := domain.User{
 		ID:           auth.GenerateToken(), // ID aleatorio de 32 bytes en hex
@@ -62,7 +80,9 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		PasswordHash: auth.HashPassword(req.Password, salt),
 		Salt:         salt,
 		Role:         domain.RoleSeller, // el registro publico nunca crea admins
-		ContactInfo:  req.ContactInfo,
+		ContactInfo:  contactInfo,
+		Email:        email,
+		Phone:        phone,
 	}
 
 	if err := h.userStore.Create(user); err != nil {
