@@ -20,9 +20,6 @@ profile.cov
 *.log
 audit.log
 
-# Persistent local data
-data/
-
 # Temporary and backup files
 *.tmp
 *~

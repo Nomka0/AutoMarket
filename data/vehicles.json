@@ -1,0 +1,30 @@
+{
+  "728dc4078f27b46e9cb8c14fe1cdc1d412653945214cabe834f1c1efc714a073": {
+    "id": "728dc4078f27b46e9cb8c14fe1cdc1d412653945214cabe834f1c1efc714a073",
+    "seller_id": "dbcbdfb2aaba436b157ca24f53923bb10dfadcbdc419eca72f00c31a28205d72",
+    "seller_contact": "alberto.albertin@gmail.com / 3014556767",
+    "seller_email": "alberto.albertin@gmail.com",
+    "seller_phone": "3014556767",
+    "title": "Carro banana",
+    "description": "0km, solo para gente que le gusta resaltar, mero exotiqueo",
+    "price": 100000000,
+    "year": 2027,
+    "image_url": "/uploads/car-197f7898b8726902.png",
+    "status": "APPROVED",
+    "created_at": "2026-10-17T15:35:27.6498946Z"
+  },
+  "b6b9ca1aa3699ee3bafbbf0b61da6978e4de10d967fc4fc3f5582cf52f84f06f": {
+    "id": "b6b9ca1aa3699ee3bafbbf0b61da6978e4de10d967fc4fc3f5582cf52f84f06f",
+    "seller_id": "dbcbdfb2aaba436b157ca24f53923bb10dfadcbdc419eca72f00c31a28205d72",
+    "seller_contact": "alberto.albertin@gmail.com / 3014556767",
+    "seller_email": "alberto.albertin@gmail.com",
+    "seller_phone": "3014556767",
+    "title": "Carro tacon",
+    "description": "Su estado es impecable, no le duele nada, roba miradas como el primer dia, escribeme si te interesa.",
+    "price": 55000000,
+    "year": 2024,
+    "image_url": "/uploads/car-27d283ec49ffb7d6.png",
+    "status": "APPROVED",
+    "created_at": "2026-10-17T15:32:43.3292207Z"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "0bd5d4bd01831f0e8e210a5966e2fa21bc4e515575aabb36e3a786d7c85fec99": {
+    "id": "0bd5d4bd01831f0e8e210a5966e2fa21bc4e515575aabb36e3a786d7c85fec99",
+    "username": "Pepe",
+    "password_hash": "1c486fb95cce1b8138a4b27714349564d7ac3d6c0fa82b3261fa8a8a404d6406",
+    "salt": "231dd9787aff24226ca13ef2c7260e19",
+    "role": "vendedor",
+    "contact_info": "pepitoperezzz@gmail.com / 3000100101",
+    "email": "pepitoperezzz@gmail.com",
+    "phone": "3000100101"
+  },
+  "admin-1": {
+    "id": "admin-1",
+    "username": "vra_rob",
+    "password_hash": "563c9e5839e5aa3c3d135f7d4bb5e39d52ef21313ca283c41917a14565d8553c",
+    "salt": "bdcf25fd7df5258dc33f540a64d0e058",
+    "role": "admin",
+    "contact_info": "N/A"
+  },
+  "dbcbdfb2aaba436b157ca24f53923bb10dfadcbdc419eca72f00c31a28205d72": {
+    "id": "dbcbdfb2aaba436b157ca24f53923bb10dfadcbdc419eca72f00c31a28205d72",
+    "username": "Alberto",
+    "password_hash": "52743b441b4bfa57f7571ef183eb6e038db59be85bd3dc36afeffc7bfb6b28a9",
+    "salt": "28cdc074e1b031000b61bd90656d19dc",
+    "role": "vendedor",
+    "contact_info": "alberto.albertin@gmail.com / 3014556767",
+    "email": "alberto.albertin@gmail.com",
+    "phone": "3014556767"
+  }
+}
