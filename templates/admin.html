@@ -64,7 +64,7 @@
                   </div>
                 </td>
                 <td>{{.Year}}</td>
-                <td>${{printf "%.2f" .Price}}</td>
+                <td>${{.FormattedPrice}}</td>
                 <td><small>{{.SellerContact}}</small></td>
                 <td><small>{{.CreatedAt.Format "02/01/2006 15:04"}}</small></td>
                 <td>
@@ -121,7 +121,7 @@
                   </div>
                 </td>
                 <td>{{.Year}}</td>
-                <td>${{printf "%.2f" .Price}}</td>
+                <td>${{.FormattedPrice}}</td>
                 <td>
                   {{if eq .Status "APPROVED"}}
                     <span class="badge badge-approved">Publicado</span>

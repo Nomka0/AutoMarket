@@ -79,3 +79,21 @@ func TestContactHelpers(t *testing.T) {
 		t.Errorf("expected non-empty mailto and whatsapp URLs")
 	}
 }
+
+func TestFormatPrice(t *testing.T) {
+	cases := []struct {
+		input float64
+		want  string
+	}{
+		{500, "500"},
+		{1000, "1'000"},
+		{1000000, "1'000'000"},
+		{45000000, "45'000'000"},
+		{123456789, "123'456'789"},
+	}
+	for _, tc := range cases {
+		if got := domain.FormatPrice(tc.input); got != tc.want {
+			t.Errorf("FormatPrice(%f) = %q; want %q", tc.input, got, tc.want)
+		}
+	}
+}

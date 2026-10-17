@@ -26,5 +26,33 @@
     "contact_info": "alberto.albertin@gmail.com / 3014556767",
     "email": "alberto.albertin@gmail.com",
     "phone": "3014556767"
+  },
+
+  "2e7986889c6ab84f763064cb149a0a0dfab607777cfb894d04d6ae46c29aa159": {
+    "id": "2e7986889c6ab84f763064cb149a0a0dfab607777cfb894d04d6ae46c29aa159",
+    "username": "maquinadefuego",
+    "password_hash": "36d10bf6e1f455b6d5ac480062b6fd2773e6832670f2187bb358729fc7e85c33",
+    "salt": "60fc7b215f7370ce62ddeebf663ff380",
+    "role": "vendedor",
+    "contact_info": "juan@gmail.com"
+  },
+  "admin-1": {
+    "id": "admin-1",
+    "username": "admin",
+    "password_hash": "e997ea529566dba3a6a6b47f4638103f4afadf2ddf2bc38202930450b1862c49",
+    "salt": "65087f7af923fa654922dff5c6b507a3",
+    "role": "admin",
+    "contact_info": "N/A"
+  },
+  "db770041f0095e942f8b23a03429005916730c4ffd9dcfe48eaf3132b5b83674": {
+    "id": "db770041f0095e942f8b23a03429005916730c4ffd9dcfe48eaf3132b5b83674",
+    "username": "nomka",
+    "password_hash": "e409191826e2015ef6c39aabbaf21f2fc7d401f6b92f839ca945468ad633e767",
+    "salt": "74b3d8a8cc4fde2cf1b51be66a809896",
+    "role": "vendedor",
+    "contact_info": "nomka@gmail.com / 30230210421",
+    "email": "nomka@gmail.com",
+    "phone": "30230210421"
   }
 }
+

@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 	"time"
@@ -93,4 +94,29 @@ func (v VehiclePublication) WhatsAppURL() string {
 	}
 	return "https://wa.me/" + phone + "?text=" + url.QueryEscape(v.DefaultMessage())
 }
+
+func (v VehiclePublication) FormattedPrice() string {
+	return FormatPrice(v.Price)
+}
+
+func FormatPrice(price float64) string {
+	n := int64(price)
+	s := fmt.Sprintf("%d", n)
+	if len(s) <= 3 {
+		return s
+	}
+	var b strings.Builder
+	remainder := len(s) % 3
+	if remainder > 0 {
+		b.WriteString(s[:remainder])
+	}
+	for i := remainder; i < len(s); i += 3 {
+		if b.Len() > 0 {
+			b.WriteByte('\'')
+		}
+		b.WriteString(s[i : i+3])
+	}
+	return b.String()
+}
+
 

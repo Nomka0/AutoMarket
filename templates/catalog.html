@@ -60,7 +60,7 @@
                 </div>
               {{end}}
               <h2>{{.Title}}</h2>
-              <div class="price">${{printf "%.2f" .Price}}</div>
+              <div class="price">${{.FormattedPrice}}</div>
               <div class="meta">Año {{.Year}} &bull; Estado: <span class="badge badge-approved">Disponible</span></div>
               <p class="desc">{{.Description}}</p>
             </div>

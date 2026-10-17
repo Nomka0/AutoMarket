@@ -43,7 +43,7 @@
           </div>
         {{end}}
         <h1 style="color: var(--text-primary);">{{.Vehicle.Title}}</h1>
-        <div class="price" style="font-size: 1.75rem; margin: 0.5rem 0;">${{printf "%.2f" .Vehicle.Price}}</div>
+        <div class="price" style="font-size: 1.75rem; margin: 0.5rem 0;">${{.Vehicle.FormattedPrice}}</div>
         <div class="meta">Año {{.Vehicle.Year}} &bull; Publicado: {{.Vehicle.CreatedAt.Format "02/01/2006"}}</div>
         
         <p class="desc" style="font-size: 1rem; margin: 1.5rem 0; line-height: 1.6;">{{.Vehicle.Description}}</p>

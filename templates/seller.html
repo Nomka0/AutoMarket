@@ -123,7 +123,7 @@
                     </div>
                   </td>
                   <td>{{.Year}}</td>
-                  <td>${{printf "%.2f" .Price}}</td>
+                  <td>${{.FormattedPrice}}</td>
                   <td>
                     {{if eq .Status "PENDING"}}
                       <span class="badge badge-pending">Pendiente</span>
