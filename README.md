@@ -3,6 +3,8 @@
 Plataforma web en Go para la compra y venta segura de vehículos usados. El proyecto implementa el marco de seguridad **AAA** (*Authentication, Authorization, Accounting*) y las 3 Historias de Usuario del taller sin usar librerías externas adicionales.
 
 ---
+VIDEO DE SUSTENTACIÓN AQUÍ: https://youtu.be/ksBZhbp6NDw
+---
 
 ## 👥 Integrantes (Equipo)
 * **Angulo Nieves, Jhon Steven**
