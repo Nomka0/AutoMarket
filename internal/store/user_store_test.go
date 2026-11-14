@@ -3,6 +3,7 @@ package store
 import (
 	"os"
 	"testing"
+	"time"
 
 	"automarket/internal/auth"
 	"automarket/internal/domain"
@@ -184,6 +185,68 @@ func TestUserStore_JSONPersistence(t *testing.T) {
 	s3 := NewUserStore(filePath)
 	if _, ok := s3.FindByID("u-persist-1"); ok {
 		t.Fatal("expected deleted user to remain deleted after reload")
+	}
+}
+
+func TestAccountLockoutPolicy(t *testing.T) {
+	s := NewUserStore()
+	username := "test_lockout_user"
+
+	// 1. Inicialmente no está bloqueado
+	locked, _ := s.IsLocked(username)
+	if locked {
+		t.Fatal("cuenta no debe estar bloqueada inicialmente")
+	}
+
+	// 2. Acumular 4 intentos fallidos: no debe bloquearse aún
+	for i := 1; i <= 4; i++ {
+		count, isLocked := s.RecordFailedAttempt(username)
+		if count != i {
+			t.Fatalf("esperaba count %d, obtuvo %d", i, count)
+		}
+		if isLocked {
+			t.Fatalf("intento %d no debió bloquear la cuenta", i)
+		}
+	}
+
+	locked, _ = s.IsLocked(username)
+	if locked {
+		t.Fatal("la cuenta no debe bloquearse con menos de 5 intentos fallidos")
+	}
+
+	// 3. Quinto intento fallido: debe bloquearse
+	count, isLocked := s.RecordFailedAttempt(username)
+	if count != 5 || !isLocked {
+		t.Fatalf("el 5to intento debió bloquear la cuenta: count=%d, isLocked=%v", count, isLocked)
+	}
+
+	locked, remaining := s.IsLocked(username)
+	if !locked || remaining <= 0 {
+		t.Fatalf("IsLocked debió retornar true con tiempo restante positivo, got locked=%v, remaining=%v", locked, remaining)
+	}
+
+	// 4. Reset tras login exitoso
+	s.ResetFailedAttempts(username)
+	locked, _ = s.IsLocked(username)
+	if locked {
+		t.Fatal("la cuenta debe desbloquearse tras ResetFailedAttempts")
+	}
+	if s.GetFailedAttempts(username) != 0 {
+		t.Fatal("contador de fallos debe ser 0 tras reset")
+	}
+
+	// 5. Verificación de desbloqueo automático por expiración
+	s.SetLockoutPolicy(5, 50*time.Millisecond)
+	for i := 0; i < 5; i++ {
+		s.RecordFailedAttempt(username)
+	}
+	if locked, _ := s.IsLocked(username); !locked {
+		t.Fatal("cuenta debió bloquearse")
+	}
+
+	time.Sleep(60 * time.Millisecond)
+	if locked, _ := s.IsLocked(username); locked {
+		t.Fatal("la cuenta debió desbloquearse automáticamente tras expirar el período de bloqueo")
 	}
 }
 

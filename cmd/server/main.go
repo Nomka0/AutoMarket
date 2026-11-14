@@ -37,6 +37,9 @@ func loadEnv(path string) {
 			}
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		log.Printf("warning: error reading env file %s: %v", path, err)
+	}
 }
 
 func main() {
@@ -79,7 +82,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(userStore, tokenStore)
 	authGroup := r.Group("/api/auth")
 	authGroup.POST("/register", authHandler.Register)
-	authGroup.POST("/login", authHandler.Login)
+	authGroup.POST("/login", auth.RateLimitMiddleware(), authHandler.Login)
 	authGroup.POST("/setup-admin", authHandler.SetupAdmin)
 	authGroup.POST("/register-admin", authHandler.SetupAdmin)
 	authGroup.GET("/has-admin", authHandler.HasAdmin)

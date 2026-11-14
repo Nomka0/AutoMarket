@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -40,12 +41,29 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	// Verificar si la cuenta se encuentra bloqueada por intentos fallidos reiterados
+	if locked, remaining := h.userStore.IsLocked(req.Username); locked {
+		remainingMinutes := int(remaining.Minutes())
+		if remainingMinutes < 1 {
+			remainingMinutes = 1
+		}
+		c.JSON(http.StatusLocked, gin.H{
+			"error":             fmt.Sprintf("cuenta bloqueada temporalmente por demasiados intentos fallidos. Intente nuevamente en %d minutos", remainingMinutes),
+			"remaining_seconds": int(remaining.Seconds()),
+		})
+		return
+	}
+
 	// mismo 401 para usuario inexistente y contraseña incorrecta: no revela si el usuario existe
 	user, ok := h.userStore.FindByUsername(req.Username)
 	if !ok || !auth.CheckPassword(req.Password, user.Salt, user.PasswordHash) {
+		h.userStore.RecordFailedAttempt(req.Username)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
 	}
+
+	// Login exitoso: resetear contador de fallos
+	h.userStore.ResetFailedAttempts(req.Username)
 
 	token := h.tokenStore.CreateToken(user.ID, user.Role) // expira en 24h (sessionTTL)
 	c.JSON(http.StatusOK, gin.H{"token": token, "role": user.Role, "username": user.Username})
