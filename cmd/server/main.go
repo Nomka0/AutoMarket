@@ -108,6 +108,7 @@ func main() {
 	adminGroup.PATCH("/publications/:id/approve", adminHandler.ApprovePublication)
 	adminGroup.DELETE("/publications/:id", adminHandler.DeletePublication)
 	adminGroup.DELETE("/users/:id", adminHandler.DeleteUser)
+	adminGroup.POST("/totp/setup", adminHandler.SetupTOTP)
 
 	// Rutas Web con plantillas HTML
 	webHandler := handlers.NewWebHandler(userStore, vehicleStore, tokenStore)

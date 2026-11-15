@@ -1,13 +1,17 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"image/png"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pquerna/otp/totp"
 
 	"automarket/internal/auth"
 	"automarket/internal/domain"
@@ -90,6 +94,79 @@ func TestRegister(t *testing.T) {
 	}
 }
 
+func TestAdminLoginRequiresValidTOTP(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	userStore := store.NewUserStore()
+	const secret = "JBSWY3DPEHPK3PXP"
+	admin, err := userStore.CreateAdminWithTOTP("admin", "password123", "admin@example.com", secret)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tokenStore := auth.NewTokenStore()
+	r := gin.New()
+	r.POST("/api/auth/login", NewAuthHandler(userStore, tokenStore).Login)
+	login := func(totpCode string, includeCode bool) *httptest.ResponseRecorder {
+		body := `{"username":"admin","password":"password123"`
+		if includeCode {
+			body += `,"totp_code":"` + totpCode + `"`
+		}
+		body += `}`
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		r.ServeHTTP(w, req)
+		return w
+	}
+
+	validCode, err := totp.GenerateCode(secret, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	validResponse := login(validCode, true)
+	if validResponse.Code != http.StatusOK {
+		t.Fatalf("valid TOTP: expected 200, got %d: %s", validResponse.Code, validResponse.Body.String())
+	}
+	var response struct {
+		Token string `json:"token"`
+		Role  string `json:"role"`
+	}
+	if err := json.Unmarshal(validResponse.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.Token == "" || response.Role != domain.RoleAdmin {
+		t.Fatalf("expected authenticated admin response, got %+v", response)
+	}
+	if session, ok := tokenStore.ValidateToken(response.Token); !ok || session.UserID != admin.ID {
+		t.Fatal("valid TOTP login did not create an admin session")
+	}
+
+	invalidCode := []byte(validCode)
+	invalidCode[len(invalidCode)-1] = '0' + (invalidCode[len(invalidCode)-1]-'0'+1)%10
+	for _, testCase := range []struct {
+		name        string
+		code        string
+		includeCode bool
+	}{
+		{name: "invalid code", code: string(invalidCode), includeCode: true},
+		{name: "missing code"},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			w := login(testCase.code, testCase.includeCode)
+			if w.Code != http.StatusUnauthorized {
+				t.Fatalf("expected 401, got %d: %s", w.Code, w.Body.String())
+			}
+			var errorResponse map[string]string
+			if err := json.Unmarshal(w.Body.Bytes(), &errorResponse); err != nil {
+				t.Fatal(err)
+			}
+			if errorResponse["error"] != "código 2FA TOTP inválido o requerido para administradores" {
+				t.Errorf("unexpected error response: %s", w.Body.String())
+			}
+		})
+	}
+}
+
 func TestSetupAdmin(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	userStore := store.NewUserStore()
@@ -114,6 +191,35 @@ func TestSetupAdmin(t *testing.T) {
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+	var enrollment struct {
+		Secret  string `json:"secret"`
+		OTPAuth string `json:"otpauth_url"`
+		QRCode  string `json:"qr_code"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &enrollment); err != nil {
+		t.Fatal(err)
+	}
+	if enrollment.Secret == "" || !strings.HasPrefix(enrollment.OTPAuth, "otpauth://totp/") {
+		t.Fatalf("expected TOTP secret and provisioning URL, got %+v", enrollment)
+	}
+	pngBytes, err := base64.StdEncoding.DecodeString(enrollment.QRCode)
+	if err != nil {
+		t.Fatalf("QR code is not valid base64: %v", err)
+	}
+	if _, err := png.Decode(strings.NewReader(string(pngBytes))); err != nil {
+		t.Fatalf("QR code is not a PNG image: %v", err)
+	}
+	admin, ok := userStore.FindByUsername("superadmin")
+	if !ok || admin.TOTPSecret != enrollment.Secret {
+		t.Fatal("TOTP secret was not saved on the administrator")
+	}
+	code, err := totp.GenerateCode(admin.TOTPSecret, time.Now())
+	if err != nil || !totp.Validate(code, admin.TOTPSecret) {
+		t.Fatal("enrollment secret must produce a valid RFC 6238 code")
+	}
+	if strings.Contains(w.Body.String(), "data:image/png") {
+		t.Error("QR code should be returned as raw base64, not a data URI")
 	}
 
 	// has-admin ahora debe ser true

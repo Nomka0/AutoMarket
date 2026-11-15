@@ -1,7 +1,9 @@
 package store
 
 import (
+	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 
 	"automarket/internal/auth"
@@ -154,7 +156,7 @@ func TestUserStore_JSONPersistence(t *testing.T) {
 	if err := s1.Create(u1); err != nil {
 		t.Fatalf("failed to create user: %v", err)
 	}
-	if _, err := s1.CreateAdmin("persistadmin", "secret123", "admin@persist.com"); err != nil {
+	if _, err := s1.CreateAdminWithTOTP("persistadmin", "secret123", "admin@persist.com", "persisted-totp-secret"); err != nil {
 		t.Fatalf("failed to create admin: %v", err)
 	}
 
@@ -172,6 +174,16 @@ func TestUserStore_JSONPersistence(t *testing.T) {
 	if !ok || !auth.CheckPassword("secret123", loadedAdmin.Salt, loadedAdmin.PasswordHash) {
 		t.Fatal("expected admin password to be verifiable after reload from JSON")
 	}
+	if loadedAdmin.TOTPSecret != "persisted-totp-secret" {
+		t.Fatal("expected TOTP secret to persist after reload")
+	}
+	publicJSON, err := json.Marshal(loadedAdmin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(publicJSON), "persisted-totp-secret") || strings.Contains(string(publicJSON), "totp_secret") {
+		t.Fatal("TOTP secret must not be exposed in normal user JSON")
+	}
 	if !s2.HasAdmin() {
 		t.Fatal("expected persisted admin to be loaded")
 	}
@@ -186,5 +198,3 @@ func TestUserStore_JSONPersistence(t *testing.T) {
 		t.Fatal("expected deleted user to remain deleted after reload")
 	}
 }
-
-

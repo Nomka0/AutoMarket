@@ -17,6 +17,17 @@ type UserStore struct {
 	filePath string
 }
 
+type persistedUser struct {
+	domain.User
+	TOTPSecret string `json:"totp_secret,omitempty"`
+}
+
+var (
+	ErrUserNotFound          = errors.New("user not found")
+	ErrUserNotAdmin          = errors.New("user is not an administrator")
+	ErrTOTPAlreadyConfigured = errors.New("TOTP is already configured")
+)
+
 func NewUserStore(filePath ...string) *UserStore {
 	s := &UserStore{
 		users: make(map[string]domain.User),
@@ -36,12 +47,16 @@ func (s *UserStore) load() error {
 		}
 		return err
 	}
-	var loaded map[string]domain.User
+	var loaded map[string]persistedUser
 	if err := json.Unmarshal(data, &loaded); err != nil {
 		return err
 	}
 	if loaded != nil {
-		s.users = loaded
+		s.users = make(map[string]domain.User, len(loaded))
+		for id, user := range loaded {
+			user.User.TOTPSecret = user.TOTPSecret
+			s.users[id] = user.User
+		}
 	}
 	return nil
 }
@@ -53,7 +68,11 @@ func (s *UserStore) save() error {
 	if dir := filepath.Dir(s.filePath); dir != "" && dir != "." {
 		_ = os.MkdirAll(dir, 0755)
 	}
-	data, err := json.MarshalIndent(s.users, "", "  ")
+	users := make(map[string]persistedUser, len(s.users))
+	for id, user := range s.users {
+		users[id] = persistedUser{User: user, TOTPSecret: user.TOTPSecret}
+	}
+	data, err := json.MarshalIndent(users, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -107,6 +126,31 @@ func (s *UserStore) Update(u domain.User) bool {
 	return true
 }
 
+func (s *UserStore) EnrollTOTP(userID, secret string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	user, ok := s.users[userID]
+	if !ok {
+		return ErrUserNotFound
+	}
+	if user.Role != domain.RoleAdmin {
+		return ErrUserNotAdmin
+	}
+	if user.TOTPSecret != "" {
+		return ErrTOTPAlreadyConfigured
+	}
+
+	previousUser := user
+	user.TOTPSecret = secret
+	s.users[userID] = user
+	if err := s.save(); err != nil {
+		s.users[userID] = previousUser
+		return err
+	}
+	return nil
+}
+
 func (s *UserStore) Delete(id string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -142,6 +186,14 @@ func (s *UserStore) HasAdmin() bool {
 }
 
 func (s *UserStore) CreateAdmin(username, password, contactInfo string) (domain.User, error) {
+	return s.createAdmin(username, password, contactInfo, "")
+}
+
+func (s *UserStore) CreateAdminWithTOTP(username, password, contactInfo, secret string) (domain.User, error) {
+	return s.createAdmin(username, password, contactInfo, secret)
+}
+
+func (s *UserStore) createAdmin(username, password, contactInfo, secret string) (domain.User, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -162,10 +214,14 @@ func (s *UserStore) CreateAdmin(username, password, contactInfo string) (domain.
 		Salt:         salt,
 		Role:         domain.RoleAdmin,
 		ContactInfo:  contactInfo,
+		TOTPSecret:   secret,
 	}
 
 	s.users[admin.ID] = admin
-	_ = s.save()
+	if err := s.save(); err != nil {
+		delete(s.users, admin.ID)
+		return domain.User{}, err
+	}
 	return admin, nil
 }
 
@@ -187,5 +243,3 @@ func (s *UserStore) SeedAdmin() error {
 func SeedAdmin(store *UserStore) error {
 	return store.SeedAdmin()
 }
-
-

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pquerna/otp/totp"
 
 	"automarket/internal/auth"
 	"automarket/internal/domain"
@@ -22,6 +23,7 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
+	TOTPCode string `json:"totp_code"`
 }
 
 type AuthHandler struct {
@@ -44,6 +46,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	user, ok := h.userStore.FindByUsername(req.Username)
 	if !ok || !auth.CheckPassword(req.Password, user.Salt, user.PasswordHash) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+		return
+	}
+	if user.Role == domain.RoleAdmin && !totp.Validate(req.TOTPCode, user.TOTPSecret) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "código 2FA TOTP inválido o requerido para administradores"})
 		return
 	}
 
@@ -111,7 +117,13 @@ func (h *AuthHandler) SetupAdmin(c *gin.Context) {
 		contactInfo = "N/A"
 	}
 
-	admin, err := h.userStore.CreateAdmin(req.Username, req.Password, contactInfo)
+	secret, otpauthURL, qrCode, err := generateTOTPSetup(req.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate TOTP enrollment"})
+		return
+	}
+
+	admin, err := h.userStore.CreateAdminWithTOTP(req.Username, req.Password, contactInfo, secret)
 	if err != nil {
 		if err.Error() == "admin user already exists" {
 			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -121,7 +133,14 @@ func (h *AuthHandler) SetupAdmin(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"id": admin.ID, "username": admin.Username, "role": admin.Role})
+	c.JSON(http.StatusCreated, gin.H{
+		"id":          admin.ID,
+		"username":    admin.Username,
+		"role":        admin.Role,
+		"secret":      secret,
+		"otpauth_url": otpauthURL,
+		"qr_code":     qrCode,
+	})
 }
 
 func (h *AuthHandler) HasAdmin(c *gin.Context) {
