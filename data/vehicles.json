@@ -13,6 +13,20 @@
     "status": "APPROVED",
     "created_at": "2026-10-17T15:35:27.6498946Z"
   },
+  "96366da69a8b2bd66e7f5dcc4788ff726b8ea228d8554e71e824e5f0637c9290": {
+    "id": "96366da69a8b2bd66e7f5dcc4788ff726b8ea228d8554e71e824e5f0637c9290",
+    "seller_id": "0bd5d4bd01831f0e8e210a5966e2fa21bc4e515575aabb36e3a786d7c85fec99",
+    "seller_contact": "pepitoperezzz@gmail.com / 3000100101",
+    "seller_email": "pepitoperezzz@gmail.com",
+    "seller_phone": "3000100101",
+    "title": "Octane",
+    "description": "Bastante uso rudo pero esta al dia con todo, es un carro que te dara mucha diversion.",
+    "price": 25000000,
+    "year": 2008,
+    "image_url": "/uploads/car-be4e7dfa0b429ad1.png",
+    "status": "APPROVED",
+    "created_at": "2026-10-17T15:47:07.5520986Z"
+  },
   "b6b9ca1aa3699ee3bafbbf0b61da6978e4de10d967fc4fc3f5582cf52f84f06f": {
     "id": "b6b9ca1aa3699ee3bafbbf0b61da6978e4de10d967fc4fc3f5582cf52f84f06f",
     "seller_id": "dbcbdfb2aaba436b157ca24f53923bb10dfadcbdc419eca72f00c31a28205d72",
