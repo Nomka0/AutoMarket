@@ -59,6 +59,7 @@ SELLER1_USER="vendedor1_${RUN_ID}"
 SELLER2_USER="vendedor2_${RUN_ID}"
 ADMIN_USER="${ADMIN_USERNAME:-admin}"
 ADMIN_PASS="${ADMIN_PASSWORD:-ciberinsegurid4d#}"
+SELLER_PASS="${SELLER_PASSWORD:-SuperSeguro#2026}"
 
 # 1. Visitante: Catálogo público inicial
 step "1. HU-VIS-01: Visitante consulta catálogo público inicial"
@@ -80,13 +81,19 @@ fi
 # 2.0.1 Intento de crear segundo administrador -> 403 Forbidden
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/auth/setup-admin" \
   -H "Content-Type: application/json" \
-  -d "{\"username\":\"admin_duplicado\",\"password\":\"pass1234\"}")
+  -d "{\"username\":\"admin_duplicado\",\"password\":\"${ADMIN_PASS}\"}")
 assert_status 403 "$HTTP_CODE" "POST /api/auth/setup-admin rechaza creación de segundo administrador con 403"
+
+# 2.0.2 Intento de registro con contraseña débil (< 10 caracteres / NIST 800-63B) -> 400 Bad Request
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/auth/register" \
+  -H "Content-Type: application/json" \
+  -d "{\"username\":\"vendedor_debil_${RUN_ID}\",\"password\":\"pass1234\",\"contact_info\":\"debil@correo.com\"}")
+assert_status 400 "$HTTP_CODE" "POST /api/auth/register rechaza contraseña débil (< 10 caracteres) con 400"
 
 # 2.1 Registro exitoso vendedor 1
 RES=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/api/auth/register" \
   -H "Content-Type: application/json" \
-  -d "{\"username\":\"${SELLER1_USER}\",\"password\":\"pass1234\",\"contact_info\":\"juan@correo.com / 3001112233\"}")
+  -d "{\"username\":\"${SELLER1_USER}\",\"password\":\"${SELLER_PASS}\",\"contact_info\":\"juan@correo.com / 3001112233\"}")
 HTTP_CODE=$(echo "$RES" | tail -n1)
 BODY=$(echo "$RES" | sed '$d')
 assert_status 201 "$HTTP_CODE" "POST /api/auth/register vendedor 1 registrado"
@@ -95,7 +102,7 @@ SELLER1_ID=$(echo "$BODY" | json_get "id")
 # 2.2 Registro exitoso vendedor 2
 RES=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/api/auth/register" \
   -H "Content-Type: application/json" \
-  -d "{\"username\":\"${SELLER2_USER}\",\"password\":\"pass1234\",\"contact_info\":\"maria@correo.com / 3114445566\"}")
+  -d "{\"username\":\"${SELLER2_USER}\",\"password\":\"${SELLER_PASS}\",\"contact_info\":\"maria@correo.com / 3114445566\"}")
 HTTP_CODE=$(echo "$RES" | tail -n1)
 BODY=$(echo "$RES" | sed '$d')
 assert_status 201 "$HTTP_CODE" "POST /api/auth/register vendedor 2 registrado"
@@ -104,7 +111,7 @@ SELLER2_ID=$(echo "$BODY" | json_get "id")
 # 2.3 Intento de registro duplicado -> 400 Bad Request
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/auth/register" \
   -H "Content-Type: application/json" \
-  -d "{\"username\":\"${SELLER1_USER}\",\"password\":\"pass1234\",\"contact_info\":\"otro@correo.com\"}")
+  -d "{\"username\":\"${SELLER1_USER}\",\"password\":\"${SELLER_PASS}\",\"contact_info\":\"otro@correo.com\"}")
 assert_status 400 "$HTTP_CODE" "POST /api/auth/register rechaza nombre de usuario duplicado"
 
 # 3. Autenticación: Inicio de sesión
@@ -112,7 +119,7 @@ step "3. RF-01 Authentication: Inicio de sesión y emisión de tokens Bearer"
 # 3.1 Login Vendedor 1
 RES=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/api/auth/login" \
   -H "Content-Type: application/json" \
-  -d "{\"username\":\"${SELLER1_USER}\",\"password\":\"pass1234\"}")
+  -d "{\"username\":\"${SELLER1_USER}\",\"password\":\"${SELLER_PASS}\"}")
 HTTP_CODE=$(echo "$RES" | tail -n1)
 BODY=$(echo "$RES" | sed '$d')
 assert_status 200 "$HTTP_CODE" "POST /api/auth/login vendedor 1 autenticado"
@@ -121,7 +128,7 @@ TOKEN_SELLER1=$(echo "$BODY" | json_get "token")
 # 3.2 Login Vendedor 2
 RES=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/api/auth/login" \
   -H "Content-Type: application/json" \
-  -d "{\"username\":\"${SELLER2_USER}\",\"password\":\"pass1234\"}")
+  -d "{\"username\":\"${SELLER2_USER}\",\"password\":\"${SELLER_PASS}\"}")
 HTTP_CODE=$(echo "$RES" | tail -n1)
 BODY=$(echo "$RES" | sed '$d')
 assert_status 200 "$HTTP_CODE" "POST /api/auth/login vendedor 2 autenticado"
