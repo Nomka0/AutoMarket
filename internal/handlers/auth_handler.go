@@ -76,6 +76,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
+	if err := auth.ValidatePassword(req.Password, req.Username); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	email := strings.TrimSpace(req.Email)
 	phone := strings.TrimSpace(req.Phone)
 	contactInfo := strings.TrimSpace(req.ContactInfo)
@@ -121,6 +126,11 @@ func (h *AuthHandler) SetupAdmin(c *gin.Context) {
 	var req SetupAdminRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "username and password are required"})
+		return
+	}
+
+	if err := auth.ValidatePassword(req.Password, req.Username); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
