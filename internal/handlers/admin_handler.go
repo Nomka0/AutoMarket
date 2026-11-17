@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -86,4 +87,51 @@ func (h *AdminHandler) DeleteUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "usuario eliminado correctamente"})
+}
+
+func (h *AdminHandler) SetupTOTP(c *gin.Context) {
+	session, ok := auth.GetCurrentUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "no autenticado"})
+		return
+	}
+
+	user, exists := h.userStore.FindByID(session.UserID)
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "usuario no encontrado"})
+		return
+	}
+	if user.Role != domain.RoleAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"error": "permiso denegado para su rol"})
+		return
+	}
+	if user.TOTPSecret != "" {
+		c.JSON(http.StatusConflict, gin.H{"error": "TOTP ya está configurado"})
+		return
+	}
+
+	secret, otpauthURL, qrCode, err := generateTOTPSetup(user.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate TOTP enrollment"})
+		return
+	}
+	if err := h.userStore.EnrollTOTP(user.ID, secret); err != nil {
+		switch {
+		case errors.Is(err, store.ErrUserNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "usuario no encontrado"})
+		case errors.Is(err, store.ErrUserNotAdmin):
+			c.JSON(http.StatusForbidden, gin.H{"error": "permiso denegado para su rol"})
+		case errors.Is(err, store.ErrTOTPAlreadyConfigured):
+			c.JSON(http.StatusConflict, gin.H{"error": "TOTP ya está configurado"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save TOTP enrollment"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"secret":      secret,
+		"otpauth_url": otpauthURL,
+		"qr_code":     qrCode,
+	})
 }
