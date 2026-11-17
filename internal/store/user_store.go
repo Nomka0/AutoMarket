@@ -6,20 +6,37 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"automarket/internal/auth"
 	"automarket/internal/domain"
 )
 
+const (
+	DefaultMaxFailedAttempts = 5
+	DefaultLockoutDuration   = 15 * time.Minute
+)
+
+type FailedAttempt struct {
+	Count       int
+	LastFailure time.Time
+}
+
 type UserStore struct {
-	mu       sync.RWMutex
-	users    map[string]domain.User // clave: ID de usuario
-	filePath string
+	mu                sync.RWMutex
+	users             map[string]domain.User // clave: ID de usuario
+	filePath          string
+	failedAttempts    map[string]FailedAttempt // clave: username
+	maxFailedAttempts int
+	lockoutDuration   time.Duration
 }
 
 func NewUserStore(filePath ...string) *UserStore {
 	s := &UserStore{
-		users: make(map[string]domain.User),
+		users:             make(map[string]domain.User),
+		failedAttempts:    make(map[string]FailedAttempt),
+		maxFailedAttempts: DefaultMaxFailedAttempts,
+		lockoutDuration:   DefaultLockoutDuration,
 	}
 	if len(filePath) > 0 && filePath[0] != "" {
 		s.filePath = filePath[0]
@@ -186,6 +203,74 @@ func (s *UserStore) SeedAdmin() error {
 
 func SeedAdmin(store *UserStore) error {
 	return store.SeedAdmin()
+}
+
+// IsLocked verifica si la cuenta de un usuario se encuentra bloqueada por intentos fallidos.
+func (s *UserStore) IsLocked(username string) (bool, time.Duration) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	attempt, exists := s.failedAttempts[username]
+	if !exists || attempt.Count < s.maxFailedAttempts {
+		return false, 0
+	}
+
+	elapsed := time.Since(attempt.LastFailure)
+	if elapsed < s.lockoutDuration {
+		return true, s.lockoutDuration - elapsed
+	}
+
+	return false, 0
+}
+
+// RecordFailedAttempt registra un intento fallido de autenticación.
+// Retorna el conteo acumulado y si la cuenta ha quedado bloqueada.
+func (s *UserStore) RecordFailedAttempt(username string) (int, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	attempt, exists := s.failedAttempts[username]
+	if !exists || time.Since(attempt.LastFailure) >= s.lockoutDuration {
+		attempt = FailedAttempt{Count: 0}
+	}
+
+	attempt.Count++
+	attempt.LastFailure = time.Now()
+	s.failedAttempts[username] = attempt
+
+	isLocked := attempt.Count >= s.maxFailedAttempts
+	return attempt.Count, isLocked
+}
+
+// ResetFailedAttempts reinicia el contador de intentos fallidos tras un login exitoso.
+func (s *UserStore) ResetFailedAttempts(username string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	delete(s.failedAttempts, username)
+}
+
+// GetFailedAttempts retorna el número de intentos fallidos registrados para el usuario.
+func (s *UserStore) GetFailedAttempts(username string) int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	attempt, exists := s.failedAttempts[username]
+	if !exists {
+		return 0
+	}
+	if time.Since(attempt.LastFailure) >= s.lockoutDuration {
+		return 0
+	}
+	return attempt.Count
+}
+
+// SetLockoutPolicy permite configurar parámetros de intentos y duración (útil para pruebas o customización).
+func (s *UserStore) SetLockoutPolicy(maxAttempts int, duration time.Duration) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.maxFailedAttempts = maxAttempts
+	s.lockoutDuration = duration
 }
 
 

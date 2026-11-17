@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -172,5 +173,78 @@ func TestSetupAdmin(t *testing.T) {
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("expected 403, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestLoginAccountLockoutLifecycle(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	userStore := store.NewUserStore()
+	tokenStore := auth.NewTokenStore()
+	h := NewAuthHandler(userStore, tokenStore)
+
+	r := gin.New()
+	r.POST("/api/auth/register", h.Register)
+	r.POST("/api/auth/login", h.Login)
+
+	login := func(username, password string) *httptest.ResponseRecorder {
+		w := httptest.NewRecorder()
+		body := `{"username":"` + username + `","password":"` + password + `"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		r.ServeHTTP(w, req)
+		return w
+	}
+
+	// 1. Registrar usuario legítimo
+	wReg := httptest.NewRecorder()
+	regBody := `{"username":"bloqueo_user","password":"Password123!","contact_info":"bloqueo@test.com"}`
+	reqReg := httptest.NewRequest(http.MethodPost, "/api/auth/register", strings.NewReader(regBody))
+	reqReg.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(wReg, reqReg)
+	if wReg.Code != http.StatusCreated {
+		t.Fatalf("registro falló: %d - %s", wReg.Code, wReg.Body.String())
+	}
+
+	// 2. Realizar 5 intentos con contraseña errónea (deben retornar 401 Unauthorized)
+	for i := 1; i <= 5; i++ {
+		w := login("bloqueo_user", "clave_incorrecta")
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("intento %d: esperaba 401, obtuvo %d", i, w.Code)
+		}
+	}
+
+	// 3. Intento 6 (con contraseña incorrecta): la cuenta debe estar bloqueada con 423 Locked
+	wLock := login("bloqueo_user", "otra_clave_incorrecta")
+	if wLock.Code != http.StatusLocked {
+		t.Fatalf("esperaba 423 StatusLocked en intento 6, obtuvo %d: %s", wLock.Code, wLock.Body.String())
+	}
+	if !strings.Contains(wLock.Body.String(), "bloqueada temporalmente") {
+		t.Errorf("respuesta 423 debe incluir mensaje descriptivo, got: %s", wLock.Body.String())
+	}
+
+	// 4. Intento 7 con la CONTRASEÑA CORRECTA: debe ser rechazado con 423 Locked mientras persista el bloqueo
+	wCorrectWhileLocked := login("bloqueo_user", "Password123!")
+	if wCorrectWhileLocked.Code != http.StatusLocked {
+		t.Fatalf("esperaba 423 StatusLocked incluso con password correcta mientras esté bloqueado, obtuvo %d", wCorrectWhileLocked.Code)
+	}
+
+	// 5. Configurar política de corta duración para validar desbloqueo y reset
+	userStore.SetLockoutPolicy(5, 50*time.Millisecond)
+	// Forzar 5 fallos bajo la nueva política
+	for i := 0; i < 5; i++ {
+		userStore.RecordFailedAttempt("bloqueo_user")
+	}
+	// Esperar que transcurra el tiempo de bloqueo
+	time.Sleep(60 * time.Millisecond)
+
+	// 6. Ahora con contraseña correcta debe ingresar exitosamente (200 OK) y resetear el contador
+	wSuccess := login("bloqueo_user", "Password123!")
+	if wSuccess.Code != http.StatusOK {
+		t.Fatalf("tras expiración, login con contraseña correcta debió ser 200 OK, obtuvo %d: %s", wSuccess.Code, wSuccess.Body.String())
+	}
+
+	// 7. El contador debe haberse reseteado a 0
+	if userStore.GetFailedAttempts("bloqueo_user") != 0 {
+		t.Fatalf("el contador de fallos debió resetearse a 0 tras login exitoso, got %d", userStore.GetFailedAttempts("bloqueo_user"))
 	}
 }
