@@ -19,20 +19,31 @@ func TestCrypto(t *testing.T) {
 	hash1 := HashPassword(pass, salt1)
 	hash2 := HashPassword(pass, salt1)
 
+	if len(hash1) != 64 { // 32 bytes hex = 64 chars
+		t.Fatalf("expected argon2 hash length 64, got %d", len(hash1))
+	}
+
 	if hash1 != hash2 {
 		t.Fatal("expected deterministic hash for same password and salt")
 	}
 
+	// Contraseña correcta -> true
 	if !CheckPassword(pass, salt1, hash1) {
-		t.Fatal("expected CheckPassword to return true")
+		t.Fatal("expected CheckPassword to return true for correct password")
 	}
 
 	if !VerifyPassword(pass, salt1, hash1) {
-		t.Fatal("expected VerifyPassword to return true")
+		t.Fatal("expected VerifyPassword to return true for correct password")
 	}
 
+	// Contraseña incorrecta -> false
 	if CheckPassword("WrongPassword", salt1, hash1) {
 		t.Fatal("expected CheckPassword to return false on wrong password")
+	}
+
+	// Salt alterado -> false
+	if CheckPassword(pass, salt2, hash1) {
+		t.Fatal("expected CheckPassword to return false when salt is altered")
 	}
 
 	token1 := GenerateToken()
@@ -43,6 +54,44 @@ func TestCrypto(t *testing.T) {
 	}
 	if token1 == token2 {
 		t.Fatal("expected distinct tokens")
+	}
+}
+
+func TestCrypto_EdgeCasesAndSpecialCharacters(t *testing.T) {
+	testCases := []struct {
+		name     string
+		password string
+	}{
+		{"EmptyPassword", ""},
+		{"SpecialChars", "P@ssw0rd!#$&*()_+~`|}{[]:;?><,./-="},
+		{"UnicodeAndEmojis", "ContraseñaSegura🔒🔑#2026!ñáéíóú"},
+		{"LongPassphrase", "correct horse battery staple with many words and spaces included 2026"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			salt := GenerateSalt()
+			hash := HashPassword(tc.password, salt)
+			if len(hash) != 64 {
+				t.Fatalf("expected 64 chars hex hash, got %d", len(hash))
+			}
+
+			// Contraseña correcta -> true
+			if !CheckPassword(tc.password, salt, hash) {
+				t.Fatalf("expected CheckPassword to return true for %s", tc.name)
+			}
+
+			// Contraseña incorrecta -> false
+			if CheckPassword(tc.password+"_wrong", salt, hash) {
+				t.Fatalf("expected CheckPassword to return false for wrong password in %s", tc.name)
+			}
+
+			// Salt alterado -> false
+			otherSalt := GenerateSalt()
+			if CheckPassword(tc.password, otherSalt, hash) {
+				t.Fatalf("expected CheckPassword to return false for altered salt in %s", tc.name)
+			}
+		})
 	}
 }
 
@@ -120,4 +169,3 @@ func TestTokenStoreConcurrency(t *testing.T) {
 		<-done
 	}
 }
-
