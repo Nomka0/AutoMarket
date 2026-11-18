@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"image/png"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -221,5 +223,71 @@ func TestDeleteUser(t *testing.T) {
 	}
 	if _, ok := userStore.FindByID("admin-1"); !ok {
 		t.Error("admin-1 should not have been deleted from userStore")
+	}
+}
+
+func TestSetupTOTP(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	userStore := store.NewUserStore()
+	admin, err := userStore.CreateAdmin("admin", "AdminSeguro#2026", "admin@example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := userStore.Create(domain.User{ID: "seller-1", Username: "seller", Role: domain.RoleSeller}); err != nil {
+		t.Fatal(err)
+	}
+	tokenStore := auth.NewTokenStore()
+	token := tokenStore.CreateToken(admin.ID, domain.RoleAdmin)
+	sellerToken := tokenStore.CreateToken("seller-1", domain.RoleSeller)
+
+	r := gin.New()
+	adminGroup := r.Group("/api/admin")
+	adminGroup.Use(auth.AuthMiddleware(tokenStore), auth.RequireRole(domain.RoleAdmin))
+	adminGroup.POST("/totp/setup", NewAdminHandler(nil, userStore, tokenStore).SetupTOTP)
+
+	setup := func(authToken string) *httptest.ResponseRecorder {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/admin/totp/setup", nil)
+		if authToken != "" {
+			req.Header.Set("Authorization", "Bearer "+authToken)
+		}
+		r.ServeHTTP(w, req)
+		return w
+	}
+
+	if w := setup(""); w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected unauthenticated setup to return 401, got %d", w.Code)
+	}
+	if w := setup(sellerToken); w.Code != http.StatusForbidden {
+		t.Fatalf("expected seller setup to return 403, got %d", w.Code)
+	}
+
+	w := setup(token)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected setup to return 200, got %d: %s", w.Code, w.Body.String())
+	}
+	var enrollment struct {
+		Secret  string `json:"secret"`
+		OTPAuth string `json:"otpauth_url"`
+		QRCode  string `json:"qr_code"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &enrollment); err != nil {
+		t.Fatal(err)
+	}
+	if enrollment.Secret == "" || !strings.HasPrefix(enrollment.OTPAuth, "otpauth://totp/") {
+		t.Fatalf("missing TOTP enrollment data: %+v", enrollment)
+	}
+	pngBytes, err := base64.StdEncoding.DecodeString(enrollment.QRCode)
+	if err != nil {
+		t.Fatalf("invalid QR code base64: %v", err)
+	}
+	if _, err := png.Decode(strings.NewReader(string(pngBytes))); err != nil {
+		t.Fatalf("QR code is not a PNG image: %v", err)
+	}
+	if saved, ok := userStore.FindByID(admin.ID); !ok || saved.TOTPSecret != enrollment.Secret {
+		t.Fatal("enrolled TOTP secret was not saved")
+	}
+	if w := setup(token); w.Code != http.StatusConflict {
+		t.Errorf("expected repeated setup to return 409, got %d", w.Code)
 	}
 }

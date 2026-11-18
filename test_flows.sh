@@ -70,12 +70,15 @@ assert_status 200 "$HTTP_CODE" "GET /api/catalog accesible sin autenticación"
 step "2. RF-01 / HU-VEN-01: Registro de usuarios y configuración de administrador"
 # 2.0 Setup de Administrador inicial si no existe
 HAS_ADMIN=$(curl -s "$BASE_URL/api/auth/has-admin" | json_get "has_admin")
+ADMIN_TOTP_SECRET=""
 if [ "$HAS_ADMIN" != "true" ]; then
   RES=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/api/auth/setup-admin" \
     -H "Content-Type: application/json" \
     -d "{\"username\":\"${ADMIN_USER}\",\"password\":\"${ADMIN_PASS}\"}")
   HTTP_CODE=$(echo "$RES" | tail -n1)
+  BODY=$(echo "$RES" | sed '$d')
   assert_status 201 "$HTTP_CODE" "POST /api/auth/setup-admin administrador inicial creado"
+  ADMIN_TOTP_SECRET=$(echo "$BODY" | json_get "secret")
 fi
 
 # 2.0.1 Intento de crear segundo administrador -> 403 Forbidden
@@ -135,12 +138,23 @@ assert_status 200 "$HTTP_CODE" "POST /api/auth/login vendedor 2 autenticado"
 TOKEN_SELLER2=$(echo "$BODY" | json_get "token")
 
 # 3.3 Login Administrador
-RES=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/api/auth/login" \
+# 3.3.1 Intento de login admin sin código TOTP -> 401 Unauthorized
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/auth/login" \
   -H "Content-Type: application/json" \
   -d "{\"username\":\"${ADMIN_USER}\",\"password\":\"${ADMIN_PASS}\"}")
+assert_status 401 "$HTTP_CODE" "POST /api/auth/login rechaza admin sin código TOTP con 401"
+
+# 3.3.2 Login exitoso admin con código TOTP RFC 6238
+TOTP_CODE=""
+if [ -n "$ADMIN_TOTP_SECRET" ]; then
+  TOTP_CODE=$(python3 -c "import hmac, hashlib, struct, time, base64; k=base64.b32decode('$ADMIN_TOTP_SECRET', casefold=True); msg=struct.pack('>Q', int(time.time())//30); h=hmac.new(k, msg, hashlib.sha1).digest(); o=h[19]&15; print(f'{(struct.unpack(\">I\", h[o:o+4])[0] & 0x7fffffff) % 1000000:06d}')")
+fi
+RES=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d "{\"username\":\"${ADMIN_USER}\",\"password\":\"${ADMIN_PASS}\",\"totp_code\":\"${TOTP_CODE}\"}")
 HTTP_CODE=$(echo "$RES" | tail -n1)
 BODY=$(echo "$RES" | sed '$d')
-assert_status 200 "$HTTP_CODE" "POST /api/auth/login administrador autenticado"
+assert_status 200 "$HTTP_CODE" "POST /api/auth/login administrador autenticado con 2FA TOTP"
 TOKEN_ADMIN=$(echo "$BODY" | json_get "token")
 
 # 3.4 Intento de login con credenciales erróneas -> 401 Unauthorized

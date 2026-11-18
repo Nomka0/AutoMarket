@@ -22,6 +22,17 @@ type FailedAttempt struct {
 	LastFailure time.Time
 }
 
+type persistedUser struct {
+	domain.User
+	TOTPSecret string `json:"totp_secret,omitempty"`
+}
+
+var (
+	ErrUserNotFound          = errors.New("user not found")
+	ErrUserNotAdmin          = errors.New("user is not an administrator")
+	ErrTOTPAlreadyConfigured = errors.New("TOTP is already configured")
+)
+
 type UserStore struct {
 	mu                sync.RWMutex
 	users             map[string]domain.User // clave: ID de usuario
@@ -53,12 +64,17 @@ func (s *UserStore) load() error {
 		}
 		return err
 	}
-	var loaded map[string]domain.User
+	var loaded map[string]persistedUser
 	if err := json.Unmarshal(data, &loaded); err != nil {
 		return err
 	}
 	if loaded != nil {
-		s.users = loaded
+		s.users = make(map[string]domain.User, len(loaded))
+		for id, pu := range loaded {
+			u := pu.User
+			u.TOTPSecret = pu.TOTPSecret
+			s.users[id] = u
+		}
 	}
 	return nil
 }
@@ -70,7 +86,11 @@ func (s *UserStore) save() error {
 	if dir := filepath.Dir(s.filePath); dir != "" && dir != "." {
 		_ = os.MkdirAll(dir, 0755)
 	}
-	data, err := json.MarshalIndent(s.users, "", "  ")
+	users := make(map[string]persistedUser, len(s.users))
+	for id, user := range s.users {
+		users[id] = persistedUser{User: user, TOTPSecret: user.TOTPSecret}
+	}
+	data, err := json.MarshalIndent(users, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -158,7 +178,40 @@ func (s *UserStore) HasAdmin() bool {
 	return false
 }
 
+func (s *UserStore) EnrollTOTP(userID, secret string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	user, ok := s.users[userID]
+	if !ok {
+		return ErrUserNotFound
+	}
+	if user.Role != domain.RoleAdmin {
+		return ErrUserNotAdmin
+	}
+	if user.TOTPSecret != "" {
+		return ErrTOTPAlreadyConfigured
+	}
+
+	previousUser := user
+	user.TOTPSecret = secret
+	s.users[userID] = user
+	if err := s.save(); err != nil {
+		s.users[userID] = previousUser
+		return err
+	}
+	return nil
+}
+
 func (s *UserStore) CreateAdmin(username, password, contactInfo string) (domain.User, error) {
+	return s.createAdmin(username, password, contactInfo, "")
+}
+
+func (s *UserStore) CreateAdminWithTOTP(username, password, contactInfo, secret string) (domain.User, error) {
+	return s.createAdmin(username, password, contactInfo, secret)
+}
+
+func (s *UserStore) createAdmin(username, password, contactInfo, secret string) (domain.User, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -179,10 +232,14 @@ func (s *UserStore) CreateAdmin(username, password, contactInfo string) (domain.
 		Salt:         salt,
 		Role:         domain.RoleAdmin,
 		ContactInfo:  contactInfo,
+		TOTPSecret:   secret,
 	}
 
 	s.users[admin.ID] = admin
-	_ = s.save()
+	if err := s.save(); err != nil {
+		delete(s.users, admin.ID)
+		return domain.User{}, err
+	}
 	return admin, nil
 }
 

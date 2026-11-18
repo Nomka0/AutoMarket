@@ -16,6 +16,7 @@ type User struct {
 	ContactInfo  string `json:"contact_info"`
 	Email        string `json:"email,omitempty"`
 	Phone        string `json:"phone,omitempty"`
+	TOTPSecret   string `json:"-"`
 }
 
 func (u User) GetEmail() string {
