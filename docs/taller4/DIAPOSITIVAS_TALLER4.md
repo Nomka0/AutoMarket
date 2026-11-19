@@ -1,5 +1,21 @@
 # Diapositivas de Sustentación Técnica: Taller 4
-## OWASP Top 10 — A07: Identification and Authentication Failures en AutoMarket
+## OWASP Top 10 - A07: Identification and Authentication Failures en AutoMarket
+
+---
+
+
+## Orden de grabación
+
+Graben cuatro tomas continuas por separado y únanlas en edición, en este orden:
+
+| Toma | Integrante | Diapositivas | Tiempo |
+|---|---|---|---:|
+| 1 | Juan José Bolaños | 1-3 | 00:00-01:20 |
+| 2 | José Antonio Rodríguez Castelblanco | 4-5 | 01:20-03:00 |
+| 3 | Braulio Robledo | 6 | 03:00-04:45 |
+| 4 | Jhon Steven Angulo | 7-9 | 04:45-06:30 |
+
+Cada integrante prepara el servidor y los archivos antes de grabar. Mantengan una sola toma por persona; las pausas para cambiar de rama o iniciar el backend ocurren antes de grabar.
 
 ---
 
@@ -7,7 +23,7 @@
 # [DIAPOSITIVA 1] Portada Institucional y Presentación del Proyecto
 
 ### **UNIVERSIDAD DEL VALLE**
-**Facultad de Ingeniería — Escuela de Ingeniería de Sistemas y Computación**  
+**Facultad de Ingeniería - Escuela de Ingeniería de Sistemas y Computación**
 **Asignatura:** Ciberseguridad  
 **Docente:** Iván M. Cabezas T.  
 
@@ -19,10 +35,10 @@
 ---
 
 ### **Integrantes del Equipo Evaluador (Orden Alfabético por Apellidos):**
-1. **Angulo Nieves, Jhon Steven** — `jhon.angulo@correounivalle.edu.co`
-2. **Bolaños Delgado, Juan José** — `juan.jose.bolanos@correounivalle.edu.co`
-3. **Robledo Delgado, Braulio** — `braulio.robledo@correounivalle.edu.co`
-4. **Rodríguez Castelblanco, José Antonio** — `jose.castelblanco@correounivalle.edu.co`
+1. **Angulo Nieves, Jhon Steven** - `jhon.angulo@correounivalle.edu.co`
+2. **Bolaños Delgado, Juan José** - `juan.jose.bolanos@correounivalle.edu.co`
+3. **Robledo Delgado, Braulio** - `braulio.robledo@correounivalle.edu.co`
+4. **Rodríguez Castelblanco, José Antonio** - `jose.castelblanco@correounivalle.edu.co`
 
 * **Repositorio Oficial:** `https://github.com/Nomka0/AutoMarket` (Rama: `taller_4`)
 * **Fecha de Sustentación:** Noviembre 2026
@@ -50,32 +66,17 @@
 ---
 
 <!-- SLIDE 3 -->
-# [DIAPOSITIVA 3] Mapeo Normativo: Alineación con CIS Controls v8.1.2
+# [DIAPOSITIVA 3] AutoMarket: sistema evaluado
 
-> *Las remediaciones no constituyen parches ad-hoc; responden directamente a los controles internacionales de ciberseguridad defensiva.*
-
-```
-                 MARCO DE SEGURIDAD DEFENSIVA (CIS CONTROLS v8.1.2)
-       ┌─────────────────────────────────────┬─────────────────────────────────────┐
-       │     CIS Control 5: Gestión de       │    CIS Control 6: Gestión del       │
-       │       Cuentas (Account Mgmt)        │   Control de Acceso (Access Ctrl)   │
-       └──────────────────┬──────────────────┴──────────────────┬──────────────────┘
-                          │                                     │
-                 Salvaguarda 5.2                       Salvaguarda 6.3 & 6.5
-                          ▼                                     ▼
-             [ NIST SP 800-63B Compliant ]         [ Defensas Activas de Acceso ]
-             • Longitud mínima: 10 chars           • 6.3: Account Lockout (5 intentos)
-             • Filtro SecLists Top 500             • Rate Limiting (5 req/min IP)
-             • Sin datos contextuales (username)   • 6.5: MFA Obligatorio Admin (TOTP)
-```
-
-### Matriz de Cumplimiento Técnico
-
-| CIS Control | Salvaguarda | Requisito Formal CIS | Implementación Técnica en AutoMarket |
-| :--- | :--- | :--- | :--- |
-| **Control 5** *(Account Management)* | **5.2** | *Use Unique Passwords:* Exigir longitud y verificar contra listas de contraseñas vulneradas. | Validador en `password_policy.go` (min 10 chars, blacklist SecLists, rechazo `HTTP 400`). |
-| **Control 6** *(Access Control)* | **6.3** | *Lockout Failed Attempts:* Bloquear temporalmente cuentas tras reiterados intentos fallidos. | Contador en `user_store.go` (5 fallos consecutivos $\rightarrow$ bloqueo 15 min con `HTTP 423`). |
-| **Control 6** *(Access Control)* | **6.5** | *Require MFA for Administrative Access:* Exigir segundo factor en todas las cuentas privilegiadas. | TOTP RFC 6238 en `totp.go` y login condicional obligatorio para rol Admin con `HTTP 401`. |
+- Backend de compraventa de vehículos construido con Go y Gin.
+- Rutas de referencia: `/catalog` y `/api/auth/login`.
+- Entrada: `cmd/server/`; lógica distribuida entre `internal/handlers/`, `internal/auth/` e `internal/store/`.
+- Roles: visitante, vendedor y administrador.
+- Para la demostración del catálogo, iniciar la rama `taller_4` antes de grabar:
+  ```bash
+  git switch taller_4
+  go run ./cmd/server
+  ```
 
 ---
 
@@ -88,14 +89,25 @@
 
 ### 2. Evidencia de Explotación Práctica (PoC)
 
+* **Preparación:** en un terminal, desde la rama `main`, iniciar el servidor vulnerable y dejarlo activo; ejecutar el bucle desde otro terminal:
+  ```bash
+  git switch main
+  go run ./cmd/server
+  ```
+* Si `curl` muestra `000`, no recibió una respuesta HTTP: el servidor no está disponible en `localhost:8080`.
+
 ```bash
 # Ráfaga ofensiva de fuerza bruta (10 intentos en 0.02 segundos sin restricción)
-$ for i in {1..10}; do curl -s -w "%{http_code} en %{time_total}s\n" -X POST \
-    http://localhost:8080/api/auth/login -d '{"username":"admin","password":"wrong"}'; done
-401 en 0.0021s
-401 en 0.0019s
-401 en 0.0018s
-... (Todas aceptadas y respondidas inmediatamente; el servidor nunca bloquea ni limita)
+for i in {1..10}; do
+  result=$(curl -s -o /dev/null -w '%{http_code} %{time_total}' -X POST http://localhost:8080/api/auth/login -H 'Content-Type: application/json' -d '{"username":"admin","password":"wrong"}')
+  http_code=${result%% *}; elapsed=${result#* }
+  case "$http_code" in
+    401) printf 'HTTP 401 Unauthorized en %ss\n' "$elapsed" ;;
+    000) printf 'Sin respuesta HTTP (curl 000; servidor inaccesible)\n' ;;
+    *) printf 'HTTP %s en %ss\n' "$http_code" "$elapsed" ;;
+  esac
+done
+# Esperado: diez HTTP 401 Unauthorized; todas respondidas sin rate limit ni lockout.
 ```
 
 ```
@@ -111,7 +123,24 @@ $ for i in {1..10}; do curl -s -w "%{http_code} en %{time_total}s\n" -X POST \
 ---
 
 <!-- SLIDE 5 -->
-# [DIAPOSITIVA 5] Arquitectura de Remediación Defensiva ("Después")
+# [DIAPOSITIVA 5] Benchmark de cracking offline
+
+### 1. Benchmark Forense de Ruptura en Hardware Ofensivo (GPU Hashcat)
+> *Espacio de claves para 8 caracteres alfanuméricos (`62^8` = 2.18 × 10¹⁴ combinaciones)*
+
+| Hardware Ofensivo | Algoritmo Evaluado | Tasa de Procesamiento | Tiempo Medio de Ruptura (50%) | Factor de Mitigación |
+| :--- | :--- | :--- | :--- | :--- |
+| **NVIDIA RTX 3080** | **SHA-256 plano** | $5.2\text{ GH/s}$ | **5.83 horas** | *Crítico (Vulnerable)* |
+| *(10 GB VRAM)* | **Argon2id OWASP** | $0.075\text{ kH/s}$ | **46,156 años** | **$69,300,000\times$ más lento** |
+| **NVIDIA RTX 4090** | **SHA-256 plano** | $9.2\text{ GH/s}$ | **3.30 horas** | *Crítico (Vulnerable)* |
+| *(24 GB VRAM)* | **Argon2id OWASP** | $0.160\text{ kH/s}$ | **21,636 años** | **$57,500,000\times$ más lento** |
+| **Cluster 8x RTX 4090** | **SHA-256 plano** | $73.6\text{ GH/s}$ | **24.7 minutos** | *Extremo (Compromiso total)* |
+| *(Granja de ataque)* | **Argon2id OWASP** | $1.280\text{ kH/s}$ | **2,704 años** | **Matemáticamente inviable** |
+
+---
+
+<!-- SLIDE 6 -->
+# [DIAPOSITIVA 6] Arquitectura de Remediación Defensiva ("Después")
 
 ### Esquema de Protección en Profundidad de AutoMarket
 
@@ -154,22 +183,16 @@ $ for i in {1..10}; do curl -s -w "%{http_code} en %{time_total}s\n" -X POST \
 
 ---
 
-<!-- SLIDE 6 -->
-# [DIAPOSITIVA 6] Resultados Cuantitativos: Benchmarks y Pruebas
+<!-- SLIDE 7 -->
+# [DIAPOSITIVA 7] Pruebas automatizadas de seguridad
 
-### 1. Benchmark Forense de Ruptura en Hardware Ofensivo (GPU Hashcat)
-> *Espacio de claves para 8 caracteres alfanuméricos (`62^8` = 2.18 × 10¹⁴ combinaciones)*
+### Suite automatizada (`test_auth_security.sh`)
 
-| Hardware Ofensivo | Algoritmo Evaluado | Tasa de Procesamiento | Tiempo Medio de Ruptura (50%) | Factor de Mitigación |
-| :--- | :--- | :--- | :--- | :--- |
-| **NVIDIA RTX 3080** | **SHA-256 plano** | $5.2\text{ GH/s}$ | **5.83 horas** | *Crítico (Vulnerable)* |
-| *(10 GB VRAM)* | **Argon2id OWASP** | $0.075\text{ kH/s}$ | **46,156 años** | **$69,300,000\times$ más lento** |
-| **NVIDIA RTX 4090** | **SHA-256 plano** | $9.2\text{ GH/s}$ | **3.30 horas** | *Crítico (Vulnerable)* |
-| *(24 GB VRAM)* | **Argon2id OWASP** | $0.160\text{ kH/s}$ | **21,636 años** | **$57,500,000\times$ más lento** |
-| **Cluster 8x RTX 4090** | **SHA-256 plano** | $73.6\text{ GH/s}$ | **24.7 minutos** | *Extremo (Compromiso total)* |
-| *(Granja de ataque)* | **Argon2id OWASP** | $1.280\text{ kH/s}$ | **2,704 años** | **Matemáticamente inviable** |
-
-### 2. Resultados de la Suite Automatizada (`test_auth_security.sh`)
+* **Preparación:** con el servidor de `main` detenido, desde la rama `taller_4` iniciar el backend y dejarlo activo en un terminal; correr la suite en otro:
+  ```bash
+  git switch taller_4
+  go run ./cmd/server
+  ```
 
 ```
 ======================================================================
@@ -186,20 +209,36 @@ $ for i in {1..10}; do curl -s -w "%{http_code} en %{time_total}s\n" -X POST \
 
 ---
 
-<!-- SLIDE 7 -->
-# [DIAPOSITIVA 7] Conclusiones, Lecciones Aprendidas y Enlaces
+<!-- SLIDE 8 -->
+# [DIAPOSITIVA 8] Conclusiones y mapeo CIS
 
-### Conclusiones Técnicas
-1. **El salteado no salva a un mal algoritmo:** Añadir un *salt* criptográfico a SHA-256 neutraliza tablas arcoíris (*rainbow tables*), pero no ofrece ninguna resistencia contra ataques de fuerza bruta paralela en GPUs.
-2. **La dureza en memoria (*Memory-Hardness*) es indispensable:** Al imponer 64 MB por operación, Argon2id satura el ancho de banda y la memoria VRAM de las GPUs, neutralizando la ventaja computacional del atacante.
-3. **Defensa en profundidad en el ciclo de vida del acceso:** La combinación de Rate Limiting (red/IP) + Account Lockout (usuario/estado) + MFA (identidad) mitiga completamente los vectores automatizados de Credential Stuffing.
+### Lecciones técnicas
+1. Un salt evita tablas arcoíris, pero no ralentiza SHA-256 frente al cracking paralelo.
+2. Argon2id aumenta el coste de cada intento offline.
+3. Rate limit, lockout y MFA cubren controles distintos del ciclo de acceso.
 
-### Declaración de Ética y Uso Responsable de IA
-* Se emplearon asistentes de IA agéntica (Antigravity CLI / Claude 3.5 Sonnet / Gemini 3.8) bajo supervisión humana para la generación de benchmarks teóricos, modelado matemático de claves y documentación técnica bajo estándares OWASP y CIS Controls.
+### Alineación con CIS Controls v8.1.2
+
+| Referencia | Alcance en AutoMarket |
+|---|---|
+| CIS 5.2 · contraseñas únicas | La política local filtra claves débiles; no demuestra unicidad y la alineación es parcial. |
+| CWE-307 · intentos de autenticación | Token Bucket y lockout son mitigaciones locales. El lockout no se atribuye a CIS 6.3. |
+| CIS 6.3 · MFA en aplicaciones expuestas | El TOTP implementado solo para Admin ofrece cobertura parcial si la aplicación está expuesta. |
+| CIS 6.5 · MFA administrativa | TOTP RFC 6238 para el rol Admin. |
+
+**Cierre:** seguridad por diseño exige controles verificables en cada etapa del acceso.
 
 ---
 
-### Enlaces Oficiales del Proyecto
-* **Código Fuente y Pull Requests:** [GitHub: Nomka0/AutoMarket (Branch `taller_4`)](https://github.com/Nomka0/AutoMarket/tree/taller_4)
-* **Suite de Pruebas Automatizadas:** [`test_auth_security.sh`](https://github.com/Nomka0/AutoMarket/blob/taller_4/test_auth_security.sh)
-* **Video de Sustentación en YouTube:** `[ENLACE_AL_VIDEO_AQUÍ]`
+<!-- SLIDE 9 -->
+# [DIAPOSITIVA 9] Autoría y uso responsable de IA
+
+- Se usó asistencia de IA para sintetizar el brief y el guion, proponer la estructura narrativa, preparar diagramas y maquetar las diapositivas. La captura de la diapositiva conserva el encargo de diseño y las fuentes indicadas.
+- ClickUp: 12 tareas de Taller 4 organizadas por responsable, prioridad y tres sprints en el plan de trabajo.
+- La guía de trabajo documenta revisión manual por pares mediante Pull Request antes de integrar cambios a `main`.
+- El equipo revisa resultados y afirmaciones, y asume la responsabilidad técnica y académica de la entrega.
+- Las tasas GPU son proyecciones offline; la medición CPU local se presenta por separado.
+
+**Repositorio:** [Nomka0/AutoMarket](https://github.com/Nomka0/AutoMarket/tree/taller_4) · **Pruebas:** [`test_auth_security.sh`](https://github.com/Nomka0/AutoMarket/blob/taller_4/test_auth_security.sh)
+
+---
