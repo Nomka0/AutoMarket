@@ -31,7 +31,7 @@
 
 > Abordamos fallos de identificación y autenticación. La categoría pasó de A02 en 2017 a A07 en 2021. En 2025 conserva el puesto siete y cambia su nombre a Authentication Failures. En AutoMarket evaluamos cuatro problemas: hashes rápidos, intentos de login sin límite, contraseñas débiles y falta de MFA para administradores.
 
-### 00:55–01:20 · AutoMarket y traspaso
+### 00:55–01:20 · AutoMarket y traspaso · sin diapositiva
 
 **Pantalla:** abrir `http://localhost:8080/catalog`; mostrar `cmd/server/`, `internal/auth/`, `internal/store/` e `internal/handlers/`.
 
@@ -54,12 +54,22 @@
 **Pantalla:** servidor vulnerable desde `main`; ejecutar diez solicitudes fallidas:
 
 ```bash
-for i in {1..10}; do curl -s -o /dev/null -w "%{http_code} en %{time_total}s\n" -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" -d '{"username":"admin","password":"wrong"}'; done
+for i in {1..10}; do
+  result=$(curl -s -o /dev/null -w '%{http_code} %{time_total}' -X POST http://localhost:8080/api/auth/login -H 'Content-Type: application/json' -d '{"username":"admin","password":"wrong"}')
+  http_code=${result%% *}; elapsed=${result#* }
+  case "$http_code" in
+    401) printf 'HTTP 401 Unauthorized en %ss\n' "$elapsed" ;;
+    000) printf 'Sin respuesta HTTP (curl 000; servidor inaccesible)\n' ;;
+    *) printf 'HTTP %s en %ss\n' "$http_code" "$elapsed" ;;
+  esac
+done
 ```
+
+**Nota:** si aparece `curl 000`, el servidor no respondió; verificar que `main` esté ejecutándose en el puerto 8080.
 
 **Locución:**
 
-> Enviamos diez contraseñas incorrectas al backend original. Las diez solicitudes reciben 401 en milisegundos. No aparece el 429 ni se bloquea la cuenta. Ese comportamiento permite automatizar fuerza bruta y credential stuffing.
+> Enviamos diez contraseñas incorrectas al backend original. Las diez solicitudes reciben HTTP 401 Unauthorized en milisegundos. No aparece el 429 ni se bloquea la cuenta. Ese comportamiento permite automatizar fuerza bruta y credential stuffing.
 
 ### 02:25–03:00 · Benchmark · slide 6
 

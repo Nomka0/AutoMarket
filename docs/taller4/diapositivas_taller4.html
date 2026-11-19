@@ -113,13 +113,13 @@
       </section>
 
       <!-- === 04 / vulnerable baseline and live proof-of-concept === -->
-      <section class="slide orange before" data-title="Antes: vulnerabilidad" data-note="01:20–01:55 · José Antonio: comparar crypto.go con main y mostrar SHA-256 más salt; abrir auth_handler.go sin limitación ni TOTP. 01:55–02:25 · Ejecutar el bucle curl contra main y destacar 10 respuestas 401 en milisegundos, sin 429 ni lockout. 02:25–03:00 · Ejecutar scripts/benchmark_hash_cracking.py y narrar la proyección RTX 4090; ceder a Braulio.">
+      <section class="slide orange before" data-title="Antes: vulnerabilidad" data-note="01:20–01:55 · José Antonio: comparar crypto.go con main y mostrar SHA-256 más salt; abrir auth_handler.go sin limitación ni TOTP. 01:55–02:25 · Ejecutar el bucle curl contra main y destacar diez respuestas HTTP 401 Unauthorized en milisegundos, sin 429 ni lockout. Si aparece curl 000, el servidor no respondió. 02:25–03:00 · Ejecutar scripts/benchmark_hash_cracking.py y narrar la proyección RTX 4090; ceder a Braulio.">
         <div class="topline"><span class="kicker">03 · antes · línea base vulnerable</span><span class="folio">04 / 08</span></div>
         <h2 class="reveal" data-editable>la puerta aceptaba<br>cada intento.</h2>
         <p class="subtitle reveal">Estado inicial · rama main · autenticación sin defensas de abuso</p>
         <div class="proof reveal">
           <div class="finding"><span class="tag">CWE-916 · crypto.go</span><h3>SHA-256 + salt</h3><p>El salt frena tablas arcoíris; un hash rápido sigue permitiendo probar contraseñas en paralelo sobre un volcado.</p><p class="proof-caption">comparar con main · hash sin factor de coste</p></div>
-          <div><div class="terminal"><div><span class="prompt">$</span> 10 intentos contra /api/auth/login</div><div class="bad">10 × 401<span class="unit"> · todas aceptadas · sin bloqueo</span></div><div>0.0021 s &nbsp; 0.0019 s &nbsp; 0.0018 s &nbsp; …</div><div style="color:rgba(17,17,17,.72);margin-top:11px">respuesta inmediata · sin HTTP 429</div></div><p class="proof-caption">prueba de concepto · fuerza bruta sobre el backend original</p></div>
+          <div><div class="terminal"><div><span class="prompt">$</span> 10 intentos contra /api/auth/login</div><div class="bad">10 × 401<span class="unit"> Unauthorized</span></div><div>0.0021 s &nbsp; 0.0019 s &nbsp; 0.0018 s &nbsp; …</div><div style="color:rgba(17,17,17,.72);margin-top:11px">respuesta inmediata · sin HTTP 429 ni lockout</div></div><p class="proof-caption">prueba de concepto · fuerza bruta sobre el backend original</p></div>
         </div>
         <div class="missing reveal"><span class="tag">sin rate limit</span><span class="tag">sin account lockout</span><span class="tag">sin MFA obligatorio</span></div>
         <div class="footline"><span>hallazgos · CWE-916 / CWE-307</span><span>antes → después</span></div>
